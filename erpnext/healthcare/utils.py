@@ -8,7 +8,7 @@ import frappe
 import json
 from frappe import _
 from frappe.utils.formatters import format_value
-from frappe.utils import time_diff_in_hours, rounded
+from frappe.utils import time_diff_in_hours, rounded, getdate
 from six import string_types
 from erpnext.healthcare.doctype.healthcare_settings.healthcare_settings import get_income_account
 from erpnext.healthcare.doctype.fee_validity.fee_validity import create_fee_validity
@@ -739,3 +739,16 @@ def update_patient_email_and_phone_numbers(contact, method):
 				frappe.db.set_value('Patient', link.get('link_name'), 'mobile', contact.mobile_no)
 			if contact.phone and contact.phone != contact_details.get('phone'):
 				frappe.db.set_value('Patient', link.get('link_name'), 'phone', contact.phone)
+
+
+@frappe.whitelist()
+def make_healthcare_service_order(args):
+	healthcare_service_order = frappe.new_doc('Healthcare Service Order')
+	for key in args:
+		if key == 'order_date':
+			healthcare_service_order.set(key, getdate(args[key]))
+		elif key == 'expected_date':
+			healthcare_service_order.set(key, getdate(args[key]))
+		else:
+			healthcare_service_order.set(key, args[key] if args[key] else '')
+	healthcare_service_order.save(ignore_permissions=True)
