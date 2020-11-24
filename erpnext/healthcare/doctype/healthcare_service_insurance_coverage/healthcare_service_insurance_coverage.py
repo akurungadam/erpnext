@@ -5,6 +5,7 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
+from frappe.utils import getdate,nowdate
 from frappe.model.document import Document
 
 class HealthcareServiceInsuranceCoverage(Document):
@@ -58,3 +59,20 @@ def get_insurance_coverage_details(healthcare_insurance_coverage_plan, service):
                     is_auto_approval = False
 
         return coverage, discount, is_auto_approval
+
+def valid_insurance(insurance_subscription, insurance_company, posting_date):
+	if frappe.db.exists('Healthcare Insurance Contract',
+		{
+			'insurance_company': insurance_company,
+			'start_date':("<=", getdate(posting_date)),
+			'end_date':(">=", getdate(posting_date)),
+			'is_active': 1
+		}):
+		if frappe.db.exists('Healthcare Insurance Subscription',
+			{
+				'name': insurance_subscription,
+				'subscription_end_date':(">=", getdate(posting_date)),
+				'is_active': 1
+			}):
+			return True
+	return False

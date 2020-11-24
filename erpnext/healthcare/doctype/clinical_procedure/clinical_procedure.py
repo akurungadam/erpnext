@@ -44,6 +44,9 @@ class ClinicalProcedure(Document):
 			self.db_set('sample', sample_collection.name)
 
 		self.reload()
+	
+	def on_submit(self):
+        make_insurance_claim(self)
 
 	def set_status(self):
 		if self.docstatus == 0:
@@ -152,6 +155,7 @@ class ClinicalProcedure(Document):
 		return stock_entry.as_dict()
 
 
+
 def get_stock_qty(item_code, warehouse):
 	return get_previous_sle({
 		'item_code': item_code,
@@ -255,3 +259,76 @@ def make_procedure(source_name, target_doc=None):
 		}, target_doc, set_missing_values)
 
 	return doc
+
+
+    def set_missing_values(source, target):
+        consume_stock = frappe.db.get_value(
+            'Clinical Procedure Template', source.procedure_template, 'consume_stock')
+        if consume_stock:
+            target.consume_stock = 1
+            warehouse = None
+            if source.service_unit:
+                warehouse = frappe.db.get_value(
+                    'Healthcare Service Unit', source.service_unit, 'warehouse')
+            if not warehouse:
+                warehouse = frappe.db.get_value(
+                    'Stock Settings', None, 'default_warehouse')
+            if warehouse:
+                target.warehouse = warehouse
+
+            set_stock_items(target, source.procedure_template,
+                            'Clinical Procedure Template')
+
+    doc = get_mapped_doc('Patient Appointment', source_name, {
+        'Patient Appointment': {
+            'doctype': 'Clinical Procedure',
+            'field_map': [
+                ['appointment', 'name'],
+                ['patient', 'patient'],
+                ['patient_age', 'patient_age'],
+                ['patient_sex', 'patient_sex'],
+                ['procedure_template', 'procedure_template'],
+                ['prescription', 'procedure_prescription'],
+                ['practitioner', 'practitioner'],
+                ['medical_department', 'department'],
+                ['start_date', 'appointment_date'],
+                ['start_time', 'appointment_time'],
+                ['notes', 'notes'],
+                ['service_unit', 'service_unit'],
+                ['company', 'company'],
+                ['invoiced', 'invoiced']
+            ]
+        }
+    }, target_doc, set_missing_values)
+
+    return doc
+
+
+def insert_clinical_procedure_to_medical_record(doc):
+    subject = frappe.bold(_("Clinical Procedure conducted: ")) + \
+        cstr(doc.procedure_template) + "<br>"
+    if doc.practitioner:
+        subject += frappe.bold(_('Healthcare Practitioner: ')
+                               ) + doc.practitioner
+    if subject and doc.notes:
+        subject += '<br/>' + doc.notes
+
+    medical_record = frappe.new_doc('Patient Medical Record')
+    medical_record.patient = doc.patient
+    medical_record.subject = subject
+    medical_record.status = 'Open'
+    medical_record.communication_date = doc.start_date
+    medical_record.reference_doctype = 'Clinical Procedure'
+    medical_record.reference_name = doc.name
+    medical_record.reference_owner = doc.owner
+    medical_record.save(ignore_permissions=True)
+
+def make_insurance_claim(doc):
+	if doc.insurance_subscription and not doc.insurance_claim:
+		from erpnext.healthcare.utils import create_insurance_claim
+		billing_item = frappe.get_cached_value('Clinical Procedure Template', doc.procedure_template, 'item')
+		insurance_claim, claim_status = create_insurance_claim(doc, 'Clinical Procedure Template', doc.procedure_template, 1, billing_item)
+		if insurance_claim:
+			frappe.set_value(doc.doctype, doc.name ,'insurance_claim', insurance_claim)
+			frappe.set_value(doc.doctype, doc.name ,'claim_status', claim_status)
+			doc.reload()
