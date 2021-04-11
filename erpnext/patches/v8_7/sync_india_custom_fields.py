@@ -12,6 +12,7 @@ def execute():
 	frappe.reload_doc('Payroll', 'doctype', 'employee_tax_exemption_proof_submission')
 	frappe.reload_doc('Payroll', 'doctype', 'employee_tax_exemption_declaration_category')
 	frappe.reload_doc('Payroll', 'doctype', 'employee_tax_exemption_proof_submission_detail')
+	frappe.reload_doc('Payroll', 'doctype', 'salary_component')
 
 	frappe.reload_doc('accounts', 'doctype', 'tax_category')
 

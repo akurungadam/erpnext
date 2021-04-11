@@ -16,6 +16,7 @@ def execute():
 	frappe.reload_doc("accounts", "doctype", "Allowed To Transact With")
 	frappe.reload_doc("accounts", "doctype", "Finance Book")
 	frappe.reload_doc("accounts", "doctype", "Loyalty Program")
+	frappe.reload_doc("accounts", "doctype", "Pricing Rule Detail")
 
 	frappe.reload_doc("stock", "doctype", "Item Barcode")
 

@@ -12,16 +12,22 @@ def execute():
         'Employee Tax Exemption Declaration',
         'Employee Tax Exemption Proof Submission',
         'Employee Tax Exemption Declaration Category',
-        'Employee Tax Exemption Proof Submission Detail'
+        'Employee Tax Exemption Proof Submission Detail',
+        'Gratuity Rule',
+        'Gratuity Rule Slab',
+        'Gratuity Applicable Component'
     ]
 
     for doctype in doctypes:
         frappe.reload_doc('Payroll', 'doctype', doctype)
 
 
-    reports = ['Professional Tax Deductions', 'Provident Fund Deductions']
+    reports = ['Professional Tax Deductions',
+		'Provident Fund Deductions',
+		'HSN Wise Summary of Outward Supplies'
+	]
+
     for report in reports:
-        frappe.reload_doc('Regional', 'Report', report)
         frappe.reload_doc('Regional', 'Report', report)
 
     if erpnext.get_region() == "India":
