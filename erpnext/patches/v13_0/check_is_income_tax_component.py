@@ -22,9 +22,8 @@ def execute():
 		frappe.reload_doc('Payroll', 'doctype', doctype)
 
 
-	reports = ['Professional Tax Deductions', 'Provident Fund Deductions']
+	reports = ['Professional Tax Deductions', 'Provident Fund Deductions', 'E-Invoice Summary']
 	for report in reports:
-		frappe.reload_doc('Regional', 'Report', report)
 		frappe.reload_doc('Regional', 'Report', report)
 
 	if erpnext.get_region() == "India":
