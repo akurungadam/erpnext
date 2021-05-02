@@ -15,7 +15,7 @@
   "from_date",
   "to_date",
   "section_break_8",
-  "healthcare_insurance_payment_request_item",
+  "insurance_payment_request_items",
   "section_break_10",
   "total_claim_amount",
   "company",
@@ -68,12 +68,6 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "healthcare_insurance_payment_request_item",
-   "fieldtype": "Table",
-   "label": "Healthcare Insurance Payment Request Item",
-   "options": "Healthcare Insurance Payment Request Item"
-  },
-  {
    "fieldname": "section_break_10",
    "fieldtype": "Section Break"
   },
@@ -98,12 +92,18 @@
    "options": "Healthcare Insurance Payment Request",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "insurance_payment_request_items",
+   "fieldtype": "Table",
+   "label": "Healthcare Insurance Payment Request Item",
+   "options": "Healthcare Insurance Payment Request Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2020-11-09 09:08:33.588897",
+ "modified": "2021-05-02 22:14:33.788891",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Payment Request",

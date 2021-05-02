@@ -36,6 +36,12 @@
   "appointment_date",
   "appointment_time",
   "appointment_datetime",
+  "insurance_section",
+  "insurance_subscription",
+  "insurance_company",
+  "column_break_49",
+  "insurance_claim",
+  "claim_status",
   "section_break_16",
   "mode_of_payment",
   "billing_item",
@@ -76,6 +82,7 @@
    "ignore_user_permissions": 1,
    "label": "Appointment Type",
    "options": "Appointment Type",
+   "reqd": 1,
    "set_only_once": 1
   },
   {
@@ -346,10 +353,49 @@
    "fieldtype": "Data",
    "label": "Practitioner Name",
    "read_only": 1
-  }
+  },
+  {
+   "fieldname": "insurance_section",
+   "fieldtype": "Section Break",
+   "label": "Patient Insurance"
+  },
+  {
+   "fieldname": "column_break_49",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "insurance_subscription.insurance_company",
+   "fieldname": "insurance_company",
+   "fieldtype": "Link",
+   "label": "Insurance Company",
+   "options": "Healthcare Insurance Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "insurance_subscription",
+   "fieldtype": "Link",
+   "label": "Insurance Subscription",
+   "options": "Healthcare Insurance Subscription"
+  },
+  {
+   "fieldname": "insurance_claim",
+   "fieldtype": "Link",
+   "label": "Insurance Claim",
+   "options": "Healthcare Insurance Claim",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "insurance_claim.claim_status",
+   "fetch_if_empty": 1,
+   "fieldname": "claim_status",
+   "fieldtype": "Select",
+   "label": "Claim Status",
+   "options": "\nPending\nApproved\nRejected\nInvoiced",
+   "read_only": 1
+ }
  ],
  "links": [],
- "modified": "2021-02-08 13:13:15.116833",
+ "modified": "2021-05-02 11:23:16.116833",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Patient Appointment",

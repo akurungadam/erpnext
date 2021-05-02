@@ -28,12 +28,22 @@ frappe.ui.form.on('Inpatient Record', {
 				discharge_patient(frm);
 			} );
 		}
+
 		if (!frm.doc.__islocal && frm.doc.status != 'Admitted') {
 			frm.disable_save();
 			frm.set_df_property('btn_transfer', 'hidden', 1);
 		} else {
 			frm.set_df_property('btn_transfer', 'hidden', 0);
 		}
+
+		frm.set_query('insurance_subscription', function(){
+			return{
+				filters:{
+					'patient': frm.doc.patient,
+					'docstatus': 1
+				}
+			};
+		});
 	},
 	btn_transfer: function(frm) {
 		transfer_patient_dialog(frm);

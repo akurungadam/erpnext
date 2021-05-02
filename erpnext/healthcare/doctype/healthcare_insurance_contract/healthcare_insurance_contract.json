@@ -1,8 +1,5 @@
 {
  "actions": [],
- "allow_copy": 1,
- "allow_import": 1,
- "allow_rename": 1,
  "autoname": "naming_series:",
  "beta": 1,
  "creation": "2020-10-16 09:41:32.043333",
@@ -27,14 +24,14 @@
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
-   "hidden": 1,
-   "label": "Contract ",
+   "label": "Series ",
    "options": "HIC-.YYYY.",
    "set_only_once": 1
   },
   {
    "fieldname": "insurance_company",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Insurance Company",
    "options": "Healthcare Insurance Company",
    "reqd": 1
@@ -75,13 +72,17 @@
   {
    "fieldname": "start_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Start Date",
+   "no_copy": 1,
    "reqd": 1
   },
   {
    "fieldname": "end_date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "End Date",
+   "no_copy": 1,
    "reqd": 1
   },
   {
@@ -102,7 +103,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2020-11-09 09:03:23.669948",
+ "modified": "2021-05-02 22:33:06.608406",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Contract",
@@ -153,8 +154,9 @@
   }
  ],
  "restrict_to_domain": "Healthcare",
+ "search_fields": "insurance_company, insurance_company_name, start_date, end_date",
  "sort_field": "modified",
  "sort_order": "DESC",
- "track_changes": 1,
- "track_seen": 1
+ "title_field": "insurance_company_name",
+ "track_changes": 1
 }

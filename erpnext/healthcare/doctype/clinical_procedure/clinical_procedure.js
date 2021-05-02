@@ -57,6 +57,15 @@ frappe.ui.form.on('Clinical Procedure', {
 			};
 		});
 
+		frm.set_query('insurance_subscription', function(){
+			return{
+				filters:{
+					'patient': frm.doc.patient,
+					'docstatus': 1
+				}
+			};
+		});
+
 		if (frm.doc.consume_stock) {
 			frm.set_indicator_formatter('item_code',
 				function(doc) { return (doc.qty<=doc.actual_qty) ? 'green' : 'orange' ; });

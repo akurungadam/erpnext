@@ -58,6 +58,12 @@
   "column_break_91",
   "order_description",
   "patient_instructions",
+  "insurance_section",
+  "insurance_subscription",
+  "insurance_company",
+  "column_break_26",
+  "insurance_claim",
+  "claim_status",
   "medical_code_section",
   "medical_code_standard",
   "medical_code",
@@ -179,7 +185,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Active\nOn Hold\nCompleted\nRevoked\nReplaced\nEntered in Error\nUnknown\nDraft\nSubmitted\nCancelled",
+   "options": "Active\nOn Hold\nCompleted\nRevoked\nReplaced\nEntered in Error\nUnknown\nDraft\nSubmitted\nCancelled\nWaiting",
    "reqd": 1
   },
   {
@@ -510,6 +516,47 @@
    "fieldname": "occurrence_time",
    "fieldtype": "Time",
    "label": "Occurrence Time"
+  },
+  {
+   "fieldname": "insurance_section",
+   "fieldtype": "Section Break",
+   "label": "Patient Insurance"
+  },
+  {
+   "fieldname": "insurance_subscription",
+   "fieldtype": "Link",
+   "label": "Insurance Subscription",
+   "options": "Healthcare Insurance Subscription"
+  },
+  {
+   "fieldname": "column_break_26",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "insurance_subscription.insurance_company",
+   "fieldname": "insurance_company",
+   "fieldtype": "Link",
+   "label": "Insurance Company",
+   "options": "Healthcare Insurance Company",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "insurance_claim",
+   "fieldtype": "Link",
+   "label": "Insurance Claim",
+   "options": "Healthcare Insurance Claim",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fetch_from": "insurance_claim.claim_status",
+   "fetch_if_empty": 1,
+   "fieldname": "claim_status",
+   "fieldtype": "Select",
+   "label": "Claim Status",
+   "options": "\nPending\nApproved\nRejected\nInvoiced",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -528,7 +575,7 @@
    "link_fieldname": "healthcare_service_order"
   }
  ],
- "modified": "2021-04-30 16:04:12.671393",
+ "modified": "2021-05-02 11:15:12.671393",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Order",

@@ -109,7 +109,6 @@
   {
    "fieldname": "insurance_company",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Insurance Company",
    "options": "Healthcare Insurance Company",
@@ -161,7 +160,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2020-11-09 09:16:40.806934",
+ "modified": "2021-05-02 22:38:39.678451",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Subscription",
