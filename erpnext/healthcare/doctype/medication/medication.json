@@ -32,6 +32,9 @@
   "column_break_16",
   "default_interval",
   "default_interval_uom",
+  "service_order_defaults_section",
+  "patient_care_type",
+  "staff_role",
   "section_break_36",
   "reference_url",
   "change_in_item"
@@ -229,10 +232,27 @@
    "fieldtype": "Float",
    "label": "Rate",
    "mandatory_depends_on": "is_billable"
+  },
+  {
+   "fieldname": "service_order_defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Service Order Defaults"
+  },
+  {
+   "fieldname": "patient_care_type",
+   "fieldtype": "Link",
+   "label": "Patient Care Type",
+   "options": "Patient Care Type"
+  },
+  {
+   "fieldname": "staff_role",
+   "fieldtype": "Link",
+   "label": "Staff Role",
+   "options": "Role"
   }
  ],
  "links": [],
- "modified": "2021-04-21 17:17:52.995701",
+ "modified": "2021-05-02 16:50:19.542152",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Medication",
