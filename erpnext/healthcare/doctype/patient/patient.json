@@ -30,6 +30,7 @@
   "mobile",
   "email",
   "phone",
+  "country",
   "customer_details_section",
   "customer",
   "customer_group",
@@ -389,13 +390,19 @@
    "fieldtype": "Link",
    "label": "Print Language",
    "options": "Language"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
   }
  ],
  "icon": "fa fa-user",
  "image_field": "image",
  "links": [],
  "max_attachments": 50,
- "modified": "2020-04-25 17:24:32.146415",
+ "modified": "2021-05-23 16:05:29.358732",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Patient",
