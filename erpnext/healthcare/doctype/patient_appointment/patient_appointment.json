@@ -406,6 +406,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "depends_on": "patient",
    "fieldname": "insurance_section",
    "fieldtype": "Section Break",
    "label": "Insurance "
@@ -423,7 +424,6 @@
    "read_only": 1
   },
   {
-   "depends_on": "appointment_type",
    "fieldname": "insurance_subscription",
    "fieldtype": "Link",
    "label": "Insurance Subscription",
@@ -447,7 +447,7 @@
   }
  ],
  "links": [],
- "modified": "2021-05-09 21:05:08.353654",
+ "modified": "2021-05-23 19:38:25.851656",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Patient Appointment",
