@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, flt, get_link_to_form
 from frappe.model.document import Document
-from erpnext.healthcare.doctype.healthcare_service_insurance_coverage.healthcare_service_insurance_coverage import get_service_insurance_coverage_details
+from erpnext.healthcare.doctype.healthcare_service_insurance_coverage.healthcare_service_insurance_coverage import get_service_insurance_coverage
 from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import get_insurance_party_details
 from erpnext.accounts.party import get_party_account
 
@@ -30,18 +30,18 @@ class HealthcareInsuranceClaim(Document):
 			self.update_approval_status_in_service(cancel=True)
 
 	def update_approval_status_in_service(self, cancel=False):
-		service_docname = frappe.db.exists(self.service_doctype, {'insurance_claim': self.name})
+		service_docname = frappe.db.exists(self.healthcare_service_type, {'insurance_claim': self.name})
 
 		if service_docname:
 			# unlink claim from service
 			if cancel:
-				frappe.db.set_value(self.service_doctype, service_docname, {
+				frappe.db.set_value(self.healthcare_service_type, service_docname, {
 					'insurance_claim': '',
 					'approval_status': ''
 				})
-				frappe.msgprint(_('Insurance Claim unlinked from the {0} {1}').format(self.service_doctype, service_docname))
+				frappe.msgprint(_('Insurance Claim unlinked from the {0} {1}').format(self.healthcare_service_type, service_docname))
 			else:
-				frappe.db.set_value(self.service_doctype, service_docname, 'approval_status', self.approval_status)
+				frappe.db.set_value(self.healthcare_service_type, service_docname, 'approval_status', self.approval_status)
 
 	def create_journal_entry(self):
 		if not self.sales_invoice:
@@ -116,9 +116,8 @@ def create_insurance_coverage(doc):
 	return coverage_service
 
 
-def make_insurance_claim(doc, service_doctype, service, qty, billing_item=None):
-	insurance_details = get_insurance_details(doc, service_doctype, service, billing_item)
-
+def make_insurance_claim(doc, service_type, service_template, qty, billing_item=None):
+	insurance_details = get_insurance_details(doc, service_type, service_template, billing_item)
 	if not insurance_details:
 		return
 
@@ -128,13 +127,13 @@ def make_insurance_claim(doc, service_doctype, service, qty, billing_item=None):
 	claim.reference_dn = doc.name
 	claim.insurance_subscription = doc.insurance_subscription
 	claim.insurance_company = doc.insurance_company
-	claim.healthcare_service_type = service_doctype
-	claim.service_template = service
+	claim.healthcare_service_type = service_type
+	claim.service_template = service_template
 	claim.approval_status = 'Approved' if insurance_details.claim_approval_mode == 'Automatic' else 'Pending'
 	claim.claim_approval_mode = insurance_details.claim_approval_mode
 	claim.claim_posting_date = getdate()
 	claim.quantity = qty
-	claim.service_doctype = doc.doctype
+	claim.service_type = doc.doctype
 	claim.service_item = billing_item
 	claim.discount = insurance_details.discount
 	claim.price_list_rate = insurance_details.price_list_rate
@@ -153,15 +152,15 @@ def make_insurance_claim(doc, service_doctype, service, qty, billing_item=None):
 	update_claim_status_in_doc(doc, claim)
 
 
-def get_insurance_details(doc, service_doctype, service, billing_item=None):
+def get_insurance_details(doc, service_type, service_template, billing_item=None):
 	if not billing_item:
-		billing_item = frappe.get_cached_value(service_doctype, service, 'item')
+		billing_item = frappe.get_cached_value(service_type, service_template, 'item')
 
-	insurance_details = get_service_insurance_coverage_details(service_doctype, service, billing_item, doc.insurance_subscription)
+	insurance_details =	get_service_insurance_coverage(doc.insurance_subscription, doc.company, service_type, service_template, billing_item)
 
 	if not insurance_details:
 		frappe.msgprint(_('Insurance Coverage not found for {0}: {1}').format(
-			service_doctype, frappe.bold(service)))
+			service_type, frappe.bold(service_template)))
 		return
 
 	insurance_subscription = frappe.db.get_value('Healthcare Insurance Subscription', doc.insurance_subscription,
@@ -177,7 +176,7 @@ def get_insurance_price_list_rate(insurance_subscription, billing_item):
 	rate = 0.0
 
 	if insurance_subscription.healthcare_insurance_coverage_plan:
-		price_list = frappe.db.get_value('Healthcare Insurance Coverage Plan', insurance_subscription.healthcare_insurance_coverage_plan, 'price_list')
+		price_list = frappe.db.get_value('Healthcare Insurance Coverage Plan', insurance_subscription.insurance_coverage_plan, 'price_list')
 		if not price_list:
 			price_list = frappe.db.get_value('Healthcare Insurance Contract', {'insurance_company': insurance_subscription.insurance_company}, 'default_price_list')
 			if not price_list:

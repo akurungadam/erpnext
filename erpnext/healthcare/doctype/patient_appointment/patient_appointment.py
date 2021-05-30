@@ -37,8 +37,8 @@ class PatientAppointment(Document):
 
 			make_insurance_claim(
 				doc=self,
-				service_doctype='Appointment Type',
-				service=self.appointment_type,
+				service_type='Appointment Type',
+				service_template=self.appointment_type,
 				qty=1,
 				billing_item=billing_item
 			)

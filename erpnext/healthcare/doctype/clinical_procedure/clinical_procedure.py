@@ -50,8 +50,8 @@ class ClinicalProcedure(Document):
 		if self.insurance_subscription and not self.insurance_claim:
 			make_insurance_claim(
 				doc=self,
-				service_doctype='Clinical Procedure Template',
-				service=self.procedure_template,
+				service_type='Clinical Procedure Template',
+				service_template=self.procedure_template,
 				qty=1
 			)
 

@@ -19,6 +19,16 @@ frappe.ui.form.on('Healthcare Service Insurance Coverage', {
 			};
 		});
 
+		frm.set_query('item', function() {
+			return {
+				filters: {
+					'is_sales_item': 1,
+					'disabled': 0,
+					'is_fixed_asset': 0
+				}
+			};
+		});
+
 		frm.set_query('healthcare_service', function() {
 			let service_template_doctypes = ['Appointment Type', 'Clinical Procedure Template', 'Therapy Type',
 				'Medication', 'Lab Test Template', 'Healthcare Service Unit Type'];
