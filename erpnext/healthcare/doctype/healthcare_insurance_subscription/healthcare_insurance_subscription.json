@@ -12,6 +12,9 @@
  "field_order": [
   "naming_series",
   "title",
+  "column_break_2",
+  "date",
+  "amended_from",
   "patient_details_section",
   "patient",
   "patient_name",
@@ -23,11 +26,10 @@
   "country",
   "insurance_details_section",
   "insurance_company",
-  "healthcare_insurance_coverage_plan",
+  "policy_expiry_date",
   "column_break_15",
   "insurance_policy_number",
-  "subscription_expiry_date",
-  "amended_from"
+  "insurance_coverage_plan"
  ],
  "fields": [
   {
@@ -99,16 +101,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "allow_in_quick_entry": 1,
-   "fieldname": "healthcare_insurance_coverage_plan",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Coverage Plan",
-   "options": "Healthcare Insurance Coverage Plan",
-   "reqd": 1
-  },
-  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -144,14 +136,6 @@
    "read_only": 1
   },
   {
-   "allow_in_quick_entry": 1,
-   "fieldname": "subscription_expiry_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Subscription Expiry Date",
-   "reqd": 1
-  },
-  {
    "fetch_from": "patient.dob",
    "fieldname": "birth_date",
    "fieldtype": "Date",
@@ -166,6 +150,32 @@
    "label": "Country",
    "options": "Country",
    "read_only": 1
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "insurance_coverage_plan",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Coverage Plan",
+   "options": "Healthcare Insurance Coverage Plan"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "policy_expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Policy Expiry Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
   }
  ],
  "is_submittable": 1,
@@ -195,7 +205,7 @@
    "link_fieldname": "insurance_subscription"
   }
  ],
- "modified": "2021-05-18 09:10:31.569542",
+ "modified": "2021-05-31 00:05:43.223781",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Subscription",

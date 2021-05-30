@@ -22,10 +22,10 @@ class HealthcareServiceOrder(Document):
 		if self.insurance_subscription and not self.insurance_claim:
 			make_insurance_claim(
 				doc=self,
-				service_doctype=self.order_doctype,
-				service=self.order_template,
+				service_type=self.order_doctype,
+				service_template=self.order_template,
 				qty=self.quantity,
-				billing_item=self.billing_item
+				billing_item=self.item_code
 			)
 
 	def set_title(self):

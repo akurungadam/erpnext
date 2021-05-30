@@ -9,22 +9,23 @@
  "field_order": [
   "title",
   "coverage_based_on",
+  "column_break_3",
   "healthcare_service",
   "healthcare_service_template",
   "medical_code_standard",
   "medical_code",
   "item",
   "item_group",
-  "column_break_3",
-  "healthcare_insurance_coverage_plan",
   "coverage_deatils_section",
-  "claim_approval_mode",
+  "mode_of_approval",
   "coverage",
   "discount",
   "column_break_12",
   "is_active",
-  "start_date",
-  "end_date"
+  "valid_from",
+  "valid_till",
+  "insurance_coverage_plan_section",
+  "insurance_coverage_plan"
  ],
  "fields": [
   {
@@ -33,15 +34,17 @@
    "fieldtype": "Link",
    "label": "Healthcare Service",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Service'",
-   "options": "DocType"
+   "options": "DocType",
+   "search_index": 1
   },
   {
-   "depends_on": "eval:doc.coverage_based_on ==='Service' && doc.healthcare_service",
+   "depends_on": "eval:doc.coverage_based_on ==='Service'",
    "fieldname": "healthcare_service_template",
    "fieldtype": "Dynamic Link",
    "label": "Healthcare Service Template",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Service'",
-   "options": "healthcare_service"
+   "options": "healthcare_service",
+   "search_index": 1
   },
   {
    "fieldname": "column_break_3",
@@ -53,14 +56,8 @@
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "Is Active"
-  },
-  {
-   "fieldname": "healthcare_insurance_coverage_plan",
-   "fieldtype": "Link",
-   "in_standard_filter": 1,
-   "label": "Healthcare Insurance Coverage Plan",
-   "options": "Healthcare Insurance Coverage Plan"
+   "label": "Is Active",
+   "search_index": 1
   },
   {
    "fieldname": "coverage_deatils_section",
@@ -83,28 +80,13 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "start_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Start Date",
-   "search_index": 1
-  },
-  {
-   "fieldname": "end_date",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "End Date",
-   "search_index": 1
-  },
-  {
    "fieldname": "coverage_based_on",
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Coverage Based on ",
-   "options": "Service\nItem\nItem Group\nMedical Code",
-   "reqd": 1
+   "options": "Service\nMedical Code\nItem\nItem Group",
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "depends_on": "eval:doc.coverage_based_on==='Medical Code'",
@@ -112,15 +94,17 @@
    "fieldtype": "Link",
    "label": "Medical Code Standard",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Medical Code'",
-   "options": "Medical Code Standard"
+   "options": "Medical Code Standard",
+   "search_index": 1
   },
   {
-   "depends_on": "eval:doc.coverage_based_on ==='Medical Code' && doc.medical_code_standard",
+   "depends_on": "eval:doc.coverage_based_on ==='Medical Code'",
    "fieldname": "medical_code",
    "fieldtype": "Link",
    "label": "Medical Code",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Medical Code'",
-   "options": "Medical Code"
+   "options": "Medical Code",
+   "search_index": 1
   },
   {
    "depends_on": "eval:doc.coverage_based_on==='Item'",
@@ -128,7 +112,8 @@
    "fieldtype": "Link",
    "label": "Item",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Item'",
-   "options": "Item"
+   "options": "Item",
+   "search_index": 1
   },
   {
    "depends_on": "eval:doc.coverage_based_on==='Item Group'",
@@ -136,7 +121,8 @@
    "fieldtype": "Link",
    "label": "Item Group",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Item Group'",
-   "options": "Item Group"
+   "options": "Item Group",
+   "search_index": 1
   },
   {
    "fieldname": "title",
@@ -148,17 +134,50 @@
    "read_only": 1
   },
   {
+   "default": "Today",
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Valid From",
+   "search_index": 1
+  },
+  {
+   "fieldname": "valid_till",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Valid Till",
+   "search_index": 1
+  },
+  {
    "default": "Automatic",
-   "fieldname": "claim_approval_mode",
+   "fieldname": "mode_of_approval",
    "fieldtype": "Select",
-   "label": "Claim Approval Mode",
+   "label": "Mode of Approval",
    "options": "Automatic\nManual\nElectronic",
    "reqd": 1
+  },
+  {
+   "description": "Optional, set this <i>only</i> if you want to restrict this coverage to Patients subscribed to an Insurance Coverage Plan (Insurance Subscription for the Patient should have the Coverage Plan selected).",
+   "fieldname": "insurance_coverage_plan",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Insurance Coverage Plan",
+   "options": "Healthcare Insurance Coverage Plan",
+   "search_index": 1
+  },
+  {
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.insurance_coverage_plan",
+   "fieldname": "insurance_coverage_plan_section",
+   "fieldtype": "Section Break",
+   "label": "Insurance Coverage Plan"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-05-20 16:29:15.263945",
+ "modified": "2021-05-31 01:52:36.972049",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Insurance Coverage",

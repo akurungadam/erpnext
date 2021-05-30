@@ -5,168 +5,169 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-from frappe.utils import getdate, get_link_to_form
+from frappe.utils import getdate, get_link_to_form, getdate
 from frappe.model.document import Document
+from erpnext.healthcare.doctype.healthcare_insurance_subscription.healthcare_insurance_subscription import is_valid_insurance_subscription
+from erpnext.healthcare.doctype.appointment_type.appointment_type import get_service_item_based_on_department
+
+class CoverageOverlapError(frappe.ValidationError): pass
 
 class HealthcareServiceInsuranceCoverage(Document):
 	def validate(self):
-		self.validate_dates()
-		self.validate_service_overlap()
+		if self.is_active:
+			self.validate_dates()
+			self.validate_overlaps()
+
 		self.set_title()
 
 	def validate_dates(self):
-		if self.start_date and self.end_date:
-			if self.start_date > self.end_date:
-				frappe.throw(_("Start Date must be before End Date."))
+		if self.valid_from and self.valid_till:
+			if self.valid_from > self.valid_till:
+				frappe.throw(_('Valid From date cannot be after Valid Till date'))
 
-	def validate_service_overlap(self):
-		filters, or_filters = self.get_filters()
+	def validate_overlaps(self):
+		conditions =  """ifnull(is_active, 0) = 1 and name != '{name}'""".format(name=self.name)
+		conditions += """ and ifnull(insurance_coverage_plan, '') = {}""".format(
+			frappe.db.escape(self.insurance_coverage_plan))
 
-		service_insurance_coverages = frappe.get_list('Healthcare Service Insurance Coverage',
-			filters=filters, or_filters=or_filters)
+		# Period
+		if self.valid_from and self.valid_till:
+			conditions += """ and ((valid_from > '{valid_from}' and valid_from < '{valid_till}') or
+				(valid_till > '{valid_from}' and valid_till < '{valid_till}') or
+				('{valid_from}' > valid_from and '{valid_from}' < valid_till) or
+				('{valid_from}' = valid_from and '{valid_till}' = valid_till))
+			""".format(valid_from=self.valid_from, valid_till=self.valid_till)
 
-		if service_insurance_coverages:
-			frappe.throw(_('Service or Item coverage overlapping with coverage {0} under the coverage plan {1}').format(
-				get_link_to_form(self.doctype, service_insurance_coverages[0].name), frappe.bold(self.healthcare_insurance_coverage_plan)),
-				title=_('Not Allowed'))
+		elif self.valid_from and not self.valid_till:
+			conditions += """ and valid_till > '{valid_from}'""".format(valid_from = self.valid_from)
 
-	def get_filters(self):
-		filters = {
-			'is_active': 1,
-			'name': ['!=', self.name],
-		}
+		elif self.valid_till and not self.valid_from:
+			conditions += """ and valid_from < '{valid_till}'""".format(valid_till = self.valid_till)
 
-		if self.start_date and self.end_date:
-			filters.update({
-				'start_date': ['<=', self.end_date],
-				'end_date': ['>=', self.start_date]
-			})
+		# Coverage based on
+		service_filters = self.get_service_filters()
+		for field in service_filters:
+			conditions += """ and {} = {}""".format(field, frappe.db.escape(service_filters.get(field)))
 
-		or_filters = {} # TODO: start and end dates are not mandatory
+		overlap = frappe.db.sql('''
+			SELECT name
+			FROM `tabHealthcare Service Insurance Coverage`
+			WHERE {}
+		'''.format(conditions), as_dict=1)
 
-		if self.healthcare_insurance_coverage_plan:
-			filters['healthcare_insurance_coverage_plan'] = self.healthcare_insurance_coverage_plan
+		if overlap:
+			frappe.throw(_('Coverage overlaps with {}').format(get_link_to_form(self.doctype, overlap[0].name)), CoverageOverlapError, title=_('Not Allowed'))
 
+	def get_service_filters(self):
 		if self.coverage_based_on == 'Service':
-			filters['healthcare_service_template'] = self.healthcare_service_template
+			return {'healthcare_service': self.healthcare_service, 'healthcare_service_template' : self.healthcare_service_template}
 
 		elif self.coverage_based_on == 'Medical Code':
-			filters['medical_code'] = self.medical_code
-
-		elif self.coverage_based_on == 'Item':
-			filters['item'] = self.item
+			return {'medical_code_standard': self.medical_code_standard, 'medical_code': self.medical_code}
 
 		elif self.coverage_based_on == 'Item Group':
-			filters['item_group'] = self.item_group
+			return {'item_group': self.item_group}
 
-		return filters, or_filters
+		elif self.coverage_based_on == 'Item':
+			return {'item': self.item}
 
 	def set_title(self):
-		if self.coverage_based_on == 'Service' and self.healthcare_service_template:
-			self.title = _('{0} - {1} - {2}').format(self.coverage_based_on, self.healthcare_service, self.healthcare_service_template)
+		if self.coverage_based_on == 'Service':
+			self.title = _('{} - {}').format(self.healthcare_service, self.healthcare_service_template)
 
-		elif self.coverage_based_on == 'Medical Code' and self.medical_code:
-			self.title = _('{0} - {1}').format(self.coverage_based_on , self.medical_code)
+		elif self.coverage_based_on == 'Item':
+			self.title = _('{} - {}').format(self.coverage_based_on,  self.item)
 
-		elif self.coverage_based_on == 'Item' and self.item:
-			self.title = _('{0} - {1}').format(self.coverage_based_on , self.item)
+		elif self.coverage_based_on == 'Item Group':
+			self.title = _('{} - {}').format(self.coverage_based_on,  self.item_group)
 
-		elif self.coverage_based_on == 'Item Group' and self.item_group:
-			self.title = _('{0} - {1}').format(self.coverage_based_on , self.item_group)
-
-
-def get_service_insurance_coverage_details(service_doctype, service, service_item, insurance_subscription):
-	valid_date = getdate()
-	coverage = discount = 0
-	insurance_details = False
-
-	insurance_subscription = frappe.db.get_value('Healthcare Insurance Subscription', insurance_subscription,
-		['name', 'healthcare_insurance_coverage_plan', 'insurance_company'], as_dict=True)
-
-	coverage_plan = insurance_subscription.healthcare_insurance_coverage_plan
-
-	if insurance_subscription and is_valid_insurance(insurance_subscription, valid_date):
-		coverage_list = get_insurance_coverage_list(coverage_plan, valid_date)
-
-		if not coverage_list:
-			return
-
-		if any((coverage['healthcare_service_template'] == service) for coverage in coverage_list):
-			coverage, discount, claim_approval_mode = get_insurance_coverage_details(coverage_plan, service=service)
-			insurance_details = frappe._dict({'claim_approval_mode': claim_approval_mode, 'discount': discount, 'coverage': coverage})
-
-		elif any((coverage['item'] == service_item) for coverage in coverage_list):
-			coverage, discount, claim_approval_mode = get_insurance_coverage_details(coverage_plan, service_item=service_item)
-			insurance_details = frappe._dict({'claim_approval_mode': claim_approval_mode, 'discount': discount, 'coverage': coverage})
-
-		else:
-			medical_code = frappe.db.get_value(service_doctype, service, 'medical_code')
-			if medical_code:
-				if any((coverage['medical_code'] == medical_code) for coverage in coverage_list):
-					coverage, discount, claim_approval_mode = get_insurance_coverage_details(coverage_plan, medical_code=medical_code)
-					insurance_details = frappe._dict({'claim_approval_mode': claim_approval_mode, 'discount': discount, 'coverage': coverage})
-			else:
-				item_group = frappe.db.get_value('Item', service_item, 'item_group')
-				if item_group:
-					if any((coverage['item_group'] == item_group) for coverage in coverage_list):
-						coverage, discount, claim_approval_mode = get_insurance_coverage_details(coverage_plan, item_group=item_group)
-						insurance_details = frappe._dict({'claim_approval_mode': claim_approval_mode, 'discount': discount, 'coverage': coverage})
-
-	return insurance_details
+		elif self.coverage_based_on == 'Medical Code':
+			self.title = _('{} - {}').format(self.medical_code_standard, self.medical_code)
 
 
-def get_insurance_coverage_details(coverage_plan, service=None, service_item=None,
-	medical_code=None, item_group=None):
-	coverage = discount = 0
-	claim_approval_mode = 'Automatic'
+def get_service_insurance_coverage(insurance_subscription, company, service_template_type, service_template, item_code=None, on_date=None):
+	'''
+	Find and return details of insurance coverage for a Healthcare Service
+	Returns a dict with name, mode_of_approval, coverage, discount form Healthcare Insurance Coverage
 
-	filters = {'healthcare_insurance_coverage_plan': coverage_plan, 'is_active': 1}
+	Arguments-
+	insurance_subscription: Insurance Subscription should be valid
+	company: Insurance Company should have a valid contract with Company
+	service_template_type: one of 'Appointment Type', 'Clinical Procedure Template', 'Therapy Type', 'Medication', 'Lab Test Template', 'Healthcare Service Unit Type'
+	service_template: any of the Healthcare Service Templates
+	item_code: only used if service_template_type is Appointment Type (TODO: fix)
 
-	if service:
-		filters['healthcare_service_template'] = service
+	NOTE:
+	If coverage for the requested service is not found, coverage for requested service's Medical Code / Item / Item Group is returned
+	Initial result set from db is ordered by valid_from date, record nearest to queried date is returned
+	'''
+	if not on_date:
+		on_date = getdate()
 
-	elif medical_code:
-		filters['medical_code'] = medical_code
+	if not is_valid_insurance_subscription(insurance_subscription, company, on_date): # also checks for valid contract
+		frappe.throw(_('Insurance Subscription {} is not valid as on {}').format(frappe.bold(insurance_subscription), on_date))
 
-	elif service_item:
-		filters['item'] = service_item
+	insurance_coverage_plan = frappe.db.get_value('Healthcare Insurance Subscription', insurance_subscription, 'insurance_coverage_plan')
 
-	elif item_group:
-		filters['item_group'] = item_group
+	conditions = """ifnull(is_active, 0) = 1 and
+		ifnull(insurance_coverage_plan, '') = {}""".format(frappe.db.escape(insurance_coverage_plan or ''))
 
-	healthcare_service_coverage = frappe.db.exists('Healthcare Service Insurance Coverage', filters)
+	conditions += """ and ('{}' between
+		ifnull(valid_from, '2000-01-01') and ifnull(valid_till, '2500-12-31'))""".format(on_date or getdate())
 
-	if healthcare_service_coverage:
-		insurance_coverage = frappe.db.get_value('Healthcare Service Insurance Coverage', healthcare_service_coverage,
-			['coverage', 'discount', 'claim_approval_mode'], as_dict=True)
+	conditions += """ and ((ifnull(healthcare_service, '') = {} and ifnull(healthcare_service_template, '') = {})""".format(
+			frappe.db.escape(service_template_type or ''), frappe.db.escape(service_template or ''))
 
-		coverage = insurance_coverage.coverage
-		discount = insurance_coverage.discount
-		claim_approval_mode = insurance_coverage.claim_approval_mode
+	# Also add conditions based on service's medical code / item etc.
+	service_details = {}
+	if service_template_type == 'Appointment Type' and item_code:
+		service_details['item_code'] = item_code
+		service_details['item_group'] = frappe.db.get_value('Item', item_code, 'item_group')
+	else:
+		field_list = get_service_template_field_list(service_template_type)
+		service_details = frappe.db.get_value(service_template_type, service_template, field_list, as_dict=1)
 
-	return coverage, discount, claim_approval_mode
+	if service_details.get('medical_code_standard') and service_details.get('medical_code'):
+		conditions += """ or (ifnull(medical_code_standard, '') = {} and ifnull(medical_code, '') = {})""".format(
+			frappe.db.escape(service_details.get('medical_code_standard') or ''), frappe.db.escape(service_details.get('medical_code') or ''))
 
+	if service_details.get('item_code') or service_details.get('item_group'):
+		conditions += """ or (ifnull(item, '') = {} or ifnull(item_group, '') = {}))""".format(
+			frappe.db.escape(service_details.get('item_code') or ''), frappe.db.escape(service_details.get('item_group') or ''))
 
-def is_valid_insurance(insurance_subscription, posting_date):
-	if frappe.db.exists('Healthcare Insurance Contract', {
-		'insurance_company': insurance_subscription.insurance_company,
-		'start_date': ('<=', getdate(posting_date)),
-		'end_date': ('>=', getdate(posting_date)),
-		'is_active': 1
-	}):
-		if frappe.db.exists('Healthcare Insurance Subscription', {
-			'name': insurance_subscription.name,
-			'subscription_expiry_date': ('>=', getdate(posting_date))
-		}):
-			return True
-	return False
+	all_coverages = frappe.db.sql('''
+			SELECT name, healthcare_service_template, medical_code, item, item_group, valid_from, valid_till, insurance_coverage_plan, mode_of_approval, coverage, discount
+			FROM `tabHealthcare Service Insurance Coverage`
+			WHERE {}
+			ORDER BY valid_from DESC
+		'''.format(conditions), as_dict=1)
 
+	if all_coverages and len(all_coverages) > 0:
+		coverages = list(filter(lambda d: d['healthcare_service_template'] == service_template, all_coverages))
+		if len(coverages) > 0:
+			return coverages[0]
 
-def get_insurance_coverage_list(coverage_plan, date):
-	return frappe.get_list('Healthcare Service Insurance Coverage',
-		filters={
-			'healthcare_insurance_coverage_plan': coverage_plan,
-			'is_active': 1,
-			'start_date': ('<=', getdate(date))
-		}, fields= ['name', 'healthcare_service_template','item', 'medical_code', 'item_group']
-	)
+		if service_details.get('medical_code'):
+			coverages = list(filter(lambda d: d['medical_code'] == service_details.get('medical_code'), all_coverages))
+			if len(coverages) > 0:
+				return coverages[0]
+
+		if service_details.get('item_code'):
+			coverages = list(filter(lambda d: d['item'] == service_details.get('item_code'), all_coverages))
+			if len(coverages) > 0:
+				return coverages[0]
+
+		if service_details.get('item_group'):
+			coverages = list(filter(lambda d: d['item_group'] == service_details.get('item_group'), all_coverages))
+			if len(coverages) > 0:
+				return coverages[0]
+
+	return None
+
+def get_service_template_field_list(service_template_type):
+	field_list = ['medical_code', 'medical_code_standard']
+	if service_template_type == 'Lab Test Template':
+		field_list.extend(['item as item_code', 'lab_test_group as item_group'])
+	else:
+		field_list.extend(['item_code', 'item_group'])
+	return field_list

@@ -5,28 +5,32 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-from frappe.utils import get_link_to_form
+from frappe.utils import get_link_to_form, getdate
 from frappe.model.document import Document
-from erpnext.healthcare.doctype.healthcare_insurance_contract.healthcare_insurance_contract import validate_insurance_contract
+from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import has_active_contract
 
 class HealthcareInsuranceSubscription(Document):
 	def validate(self):
-		validate_insurance_contract(self.insurance_company)
+		# check if a contract exist for the insurance company
+		if not has_active_contract(self.insurance_company):
+			frappe.throw(_('No active contracts found for Insurance Company {0}')
+				.format(self.insurance_company))
+
 		self.validate_expiry_date()
 		self.validate_subscription_overlap()
 		self.set_title()
 
 	def validate_expiry_date(self):
-		if frappe.utils.getdate(self.subscription_expiry_date) < frappe.utils.getdate():
-			frappe.throw(_('Subscription Expiry Date cannot be a past date'))
+		if getdate(self.policy_expiry_date) < getdate():
+			frappe.throw(_('Expiry Date for the Subscription cannot be a past date'))
 
 	def validate_subscription_overlap(self):
 		insurance_subscription = frappe.db.exists('Healthcare Insurance Subscription', {
-			'healthcare_insurance_coverage_plan': self.healthcare_insurance_coverage_plan,
-			'docstatus': 1,
-			'insurance_company': self.insurance_company,
 			'patient': self.patient,
-			'subscription_expiry_date': ['<=', self.subscription_expiry_date]
+			'docstatus': 1,
+			'policy_expiry_date': ['<=', self.policy_expiry_date],
+			'insurance_company': self.insurance_company,
+			'insurance_coverage_plan': self.insurance_coverage_plan or ''
 		})
 		if insurance_subscription:
 			frappe.throw(_('Patient {0} already has an active insurance subscription {1} with the coverage plan {2} for this period').format(
@@ -35,3 +39,11 @@ class HealthcareInsuranceSubscription(Document):
 
 	def set_title(self):
 		self.title = _('{0} - {1}').format(self.patient_name or self.patient, self.insurance_policy_number)
+
+def is_valid_insurance_subscription(subscription, company=None, on_date=None):
+	if subscription:
+		insurance_co, policy_expiry = frappe.db.get_value('Healthcare Insurance Subscription', subscription, ['insurance_company', 'policy_expiry_date'])
+
+		if getdate(policy_expiry) >= (getdate(on_date) or getdate()) and has_active_contract(insurance_co, company, on_date):
+			return True
+	return False
