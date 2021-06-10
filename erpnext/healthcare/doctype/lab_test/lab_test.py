@@ -23,12 +23,8 @@ class LabTest(Document):
 			frappe.db.set_value('Healthcare Service Order', self.healthcare_service_order, 'status', 'Completed')
 
 		if self.insurance_subscription and not self.insurance_claim:
-			make_insurance_claim(
-				doc=self,
-				service_doctype='Lab Test Template',
-				service=self.template,
-				qty=1
-			)
+			self.insurance_claim = make_insurance_claim(self)
+
 
 	def on_cancel(self):
 		self.db_set('status', 'Cancelled')

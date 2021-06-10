@@ -155,7 +155,7 @@
    "fieldname": "mode_of_approval",
    "fieldtype": "Select",
    "label": "Mode of Approval",
-   "options": "Automatic\nManual\nElectronic",
+   "options": "\nAutomatic\nManual",
    "reqd": 1
   },
   {
@@ -177,7 +177,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-05-31 01:52:36.972049",
+ "modified": "2021-06-03 22:53:25.212416",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Insurance Coverage",

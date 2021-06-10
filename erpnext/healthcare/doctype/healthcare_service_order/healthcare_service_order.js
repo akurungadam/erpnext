@@ -2,6 +2,12 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Healthcare Service Order', {
+	onload: function(frm) {
+		if (frm.doc.__islocal) {
+			frm.set_value('order_time', frappe.datetime.now_time())
+		}
+	},
+
 	refresh: function(frm) {
 		frm.set_query('order_group', function () {
 			return {
@@ -132,7 +138,6 @@ frappe.ui.form.on('Healthcare Service Order', {
 			frm.add_custom_button(__('Therapy Session'), function() {
 				frm.trigger('make_therapy_session');
 			}, __('Create'));
-
 		}
 
 		frm.page.set_inner_btn_group_as_primary(__('Create'));

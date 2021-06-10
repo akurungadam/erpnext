@@ -61,7 +61,7 @@ def get_appointments_to_invoice(patient, company):
 		else:
 			if frappe.db.get_single_value('Healthcare Settings', 'enable_free_follow_ups') and \
 				frappe.db.exists('Fee Validity Reference', {'appointment': appointment.name}):
-					continue # Skip invoicing, fee validty present
+					continue # Skip invoicing, fee validity present
 			practitioner_charge = 0
 			income_account = None
 			service_item = None
@@ -72,7 +72,7 @@ def get_appointments_to_invoice(patient, company):
 				income_account = get_income_account(appointment.practitioner, appointment.company)
 
 			if appointment.insurance_claim:
-				if appointment.approval_status == 'Approved':
+				if appointment.claim_status == 'Approved':
 					coverage, discount, price_list_rate = frappe.get_cached_value('Healthcare Insurance Claim', appointment.insurance_claim, ['coverage', 'discount', 'price_list_rate'])
 					appointments_to_invoice.append({
 						'reference_type': 'Patient Appointment',
@@ -92,7 +92,7 @@ def get_appointments_to_invoice(patient, company):
 					'rate': practitioner_charge,
 					'income_account': income_account
 				})
-
+	print(appointments_to_invoice)
 	return appointments_to_invoice
 
 
@@ -124,7 +124,7 @@ def get_encounters_to_invoice(patient, company):
 				income_account = get_income_account(encounter.practitioner, encounter.company)
 
 			if encounter.insurance_claim:
-				if encounter.approval_status == 'Approved':
+				if encounter.claim_status == 'Approved':
 					coverage, discount, price_list_rate = frappe.get_cached_value('Healthcare Insurance Claim', encounter.insurance_claim, ['coverage', 'discount', 'price_list_rate'])
 					encounters_to_invoice.append({
 						'reference_type': 'Patient Encounter',
@@ -160,7 +160,7 @@ def get_lab_tests_to_invoice(patient, company):
 		item, is_billable = frappe.get_cached_value('Lab Test Template', lab_test.template, ['item', 'is_billable'])
 		if is_billable:
 			if lab_test.insurance_claim:
-				if lab_test.approval_status == 'Approved':
+				if lab_test.claim_status == 'Approved':
 					coverage, discount, price_list_rate = frappe.get_cached_value('Healthcare Insurance Claim', lab_test.insurance_claim, ['coverage', 'discount', 'price_list_rate'])
 					lab_tests_to_invoice.append({
 						'reference_type': 'Lab Test',
@@ -177,7 +177,7 @@ def get_lab_tests_to_invoice(patient, company):
 					'reference_name': lab_test.name,
 					'service': item
 				})
-
+	print(lab_tests_to_invoice)
 	return lab_tests_to_invoice
 
 
@@ -196,7 +196,7 @@ def get_clinical_procedures_to_invoice(patient, company):
 		item, is_billable = frappe.get_cached_value('Clinical Procedure Template', procedure.procedure_template, ['item', 'is_billable'])
 		if procedure.procedure_template and is_billable:
 			if procedure.insurance_claim:
-				if procedure.approval_status == 'Approved':
+				if procedure.claim_status == 'Approved':
 					coverage, discount, rate = frappe.get_cached_value('Healthcare Insurance Claim', procedure.insurance_claim,
 						['coverage', 'discount', 'price_list_rate'])
 
@@ -352,7 +352,7 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 
 		if is_billable:
 			if service_order.insurance_claim:
-				if service_order.approval_status == 'Approved':
+				if service_order.claim_status == 'Approved':
 					coverage, discount, rate = frappe.get_cached_value('Healthcare Insurance Claim', service_order.insurance_claim, ['coverage', 'discount', 'price_list_rate'])
 					service_order_to_invoice.append({
 						'reference_type': 'Healthcare Service Order',
@@ -371,6 +371,7 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 					'service': item,
 					'qty': service_order.quantity if service_order.quantity else 1
 				})
+	print(service_order_to_invoice)
 	return service_order_to_invoice
 
 
@@ -479,12 +480,69 @@ def manage_invoice_submit_cancel(doc, method):
 			if item.get('reference_dt') and item.get('reference_dn'):
 				if frappe.get_meta(item.reference_dt).has_field('invoiced'):
 					set_invoiced(item, method, doc.name)
-			if item.get('insurance_claim'):
-				from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import update_insurance_claim
-				update_insurance_claim(item.insurance_claim, doc.name, doc.posting_date, doc.total)
+
+	if any(item.get('insurance_claim') for item in doc.items):
+		# from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import update_insurance_claim
+		# update_insurance_claim(item.insurance_claim, item.qty, method)
+		if method == 'on_submit':
+			post_insurance_transfer_journal_entry(doc)
+		else:
+			cancel_insurance_transfer_journal_entry(doc)
 
 	if method=='on_submit' and frappe.db.get_single_value('Healthcare Settings', 'create_lab_test_on_si_submit'):
 		create_multiple('Sales Invoice', doc.name)
+
+
+def cancel_insurance_transfer_journal_entry(sales_invoice):
+	pass
+
+def post_insurance_transfer_journal_entry(sales_invoice):
+	'''
+	Transfers Patient balance against Insurance Company by posting a Journal Entry
+	Updates Insurance Claim invoice details
+	'''
+	jv_accounts = []
+
+	for item in sales_invoice.items:
+		if item.get('insurance_claim'):
+			from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import get_insurance_party_details
+			#TODO: move get_insurance_party_details to utils, clean cross imports
+
+			insurance_claim = frappe.get_doc('Healthcare Insurance Claim', item.get('insurance_claim'))
+			insurance_company_details = get_insurance_party_details(insurance_claim.insurance_company, sales_invoice.company)
+
+			if not insurance_company_details or not insurance_company_details.get('receivable_account') or not insurance_company_details.get('party'):
+				frappe.throw(_('Receivable Account no configured for Insurance Company').format(insurance_claim.insurance_company))
+
+			jv_accounts.append({
+				'account': sales_invoice.debit_to,
+				'credit_in_account_currency': item.insurance_claim_amount,
+				'party_type': 'Customer',
+				'party': sales_invoice.customer,
+				'reference_type': 'Sales Invoice',
+				'reference_name': sales_invoice.name
+			})
+
+			jv_accounts.append({
+				'account': insurance_company_details.get('receivable_account'),
+				'debit_in_account_currency': item.insurance_claim_amount,
+				'party_type': 'Customer',
+				'party': insurance_company_details.get('party')
+			})
+
+			insurance_claim.set_invoice_details(item.qty, item.insurance_claim_amount)
+
+	if len(jv_accounts) > 0:
+		journal_entry = frappe.new_doc('Journal Entry')
+		journal_entry.company = sales_invoice.company
+		journal_entry.posting_date = sales_invoice.posting_date
+
+		for account in jv_accounts:
+			journal_entry.append('accounts', account)
+
+		journal_entry.flags.ignore_permissions = True
+		journal_entry.flags.ignore_mandatory = True
+		journal_entry.save()
 
 
 def set_invoiced(item, method, ref_invoice=None):

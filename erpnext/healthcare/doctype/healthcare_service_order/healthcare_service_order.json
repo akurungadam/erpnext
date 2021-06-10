@@ -12,12 +12,13 @@
   "naming_series",
   "order_doctype",
   "order_template",
+  "expected_date",
+  "column_break_4",
+  "company",
   "order_date",
   "order_time",
-  "column_break_4",
   "status",
-  "company",
-  "expected_date",
+  "color",
   "patient_detail_section",
   "patient",
   "patient_name",
@@ -36,9 +37,12 @@
   "medical_department",
   "referred_to_practitioner",
   "column_break_10",
+  "reason_reference_doctype",
+  "reason_reference",
+  "amended_from",
   "order_group",
   "sequence",
-  "order_details",
+  "service_details_section",
   "staff_role",
   "item_code",
   "patient_care_type",
@@ -59,25 +63,13 @@
   "patient_instructions",
   "insurance_section",
   "insurance_subscription",
+  "insurance_claim",
   "column_break_26",
   "insurance_company",
+  "claim_status",
   "medical_code_section",
   "medical_code_standard",
-  "medical_code",
-  "origin_section",
-  "order_reference_doctype",
-  "order_reference_name",
-  "column_break_9",
-  "source",
-  "referring_practitioner",
-  "color",
-  "order",
-  "reason_reference_doctype",
-  "reason_reference",
-  "order_group_doctype",
-  "amended_from",
-  "insurance_claim",
-  "approval_status"
+  "medical_code"
  ],
  "fields": [
   {
@@ -107,14 +99,6 @@
    "reqd": 1
   },
   {
-   "collapsible": 1,
-   "fieldname": "origin_section",
-   "fieldtype": "Section Break",
-   "hidden": 1,
-   "label": "Order Group Reference",
-   "read_only": 1
-  },
-  {
    "fieldname": "order_group",
    "fieldtype": "Link",
    "label": "Order Group (Encounter)",
@@ -126,22 +110,6 @@
    "label": "Order Type",
    "options": "DocType",
    "reqd": 1
-  },
-  {
-   "fieldname": "column_break_9",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "order_reference_doctype",
-   "fieldtype": "Link",
-   "label": "Order Reference DocType",
-   "options": "DocType"
-  },
-  {
-   "fieldname": "order_reference_name",
-   "fieldtype": "Dynamic Link",
-   "label": "Order Reference Name",
-   "options": "order_reference_doctype"
   },
   {
    "fieldname": "column_break_91",
@@ -162,13 +130,6 @@
    "options": "Role"
   },
   {
-   "fieldname": "order",
-   "fieldtype": "Dynamic Link",
-   "label": "Order",
-   "options": "order_doctype",
-   "set_only_once": 1
-  },
-  {
    "fetch_from": "order_template.patient_care_type",
    "fetch_if_empty": 1,
    "fieldname": "patient_care_type",
@@ -184,7 +145,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Active\nOn Hold\nCompleted\nRevoked\nReplaced\nEntered in Error\nUnknown\nDraft\nSubmitted\nCancelled",
+   "options": "Draft\nSubmitted\nActive\nOn Hold\nCompleted\nCancelled\nReplaced\nEntered in Error\nUnknown",
    "reqd": 1
   },
   {
@@ -287,20 +248,6 @@
    "fieldtype": "Check",
    "label": "Invoiced",
    "read_only": 1
-  },
-  {
-   "fieldname": "source",
-   "fieldtype": "Select",
-   "label": "Source",
-   "options": "Direct\nReferral\nExternal Referral",
-   "set_only_once": 1
-  },
-  {
-   "fieldname": "referring_practitioner",
-   "fieldtype": "Link",
-   "label": "Referring Practitioner",
-   "options": "Healthcare Practitioner",
-   "set_only_once": 1
   },
   {
    "fieldname": "amended_from",
@@ -410,13 +357,6 @@
    "reqd": 1
   },
   {
-   "default": "Patient Encounter",
-   "fieldname": "order_group_doctype",
-   "fieldtype": "Link",
-   "label": "Order Group Type",
-   "options": "DocType"
-  },
-  {
    "fieldname": "order_time",
    "fieldtype": "Time",
    "label": "Order Time",
@@ -467,11 +407,6 @@
    "hidden": 1,
    "label": "Birth Date",
    "read_only": 1
-  },
-  {
-   "fieldname": "order_details",
-   "fieldtype": "Section Break",
-   "label": "Order Details"
   },
   {
    "fieldname": "patient_detail_section",
@@ -542,13 +477,15 @@
    "read_only": 1
   },
   {
+   "fieldname": "service_details_section",
+   "fieldtype": "Section Break",
+   "label": "Service Details"
+  },
+  {
    "allow_on_submit": 1,
-   "fetch_from": "insurance_claim.approval_status",
-   "fetch_if_empty": 1,
-   "fieldname": "approval_status",
-   "fieldtype": "Select",
+   "fieldname": "claim_status",
+   "fieldtype": "Data",
    "label": "Claim Status",
-   "options": "\nPending\nApproved\nRejected\nInvoiced",
    "read_only": 1
   }
  ],
@@ -568,7 +505,7 @@
    "link_fieldname": "healthcare_service_order"
   }
  ],
- "modified": "2021-05-06 21:55:41.297889",
+ "modified": "2021-06-06 20:37:52.147257",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Order",
@@ -620,7 +557,7 @@
   }
  ],
  "restrict_to_domain": "Healthcare",
- "search_fields": "order, patient, order_group",
+ "search_fields": "patient, order_group",
  "sort_field": "modified",
  "sort_order": "DESC",
  "title_field": "title",

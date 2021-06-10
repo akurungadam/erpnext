@@ -28,14 +28,7 @@ class PatientEncounter(Document):
 		self.make_healthcare_service_order()
 
 		if self.appointment_type and self.insurance_subscription and not self.insurance_claim:
-			billing_item, rate = get_service_item_and_practitioner_charge(self)
-			make_insurance_claim(
-				doc=self,
-				service_doctype='Appointment Type',
-				service=self.appointment_type,
-				qty=1,
-				billing_item=billing_item
-			)
+			self.insurance_claim = make_insurance_claim(self)
 
 	def on_cancel(self):
 		if self.appointment:

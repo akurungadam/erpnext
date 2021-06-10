@@ -22,9 +22,20 @@ frappe.ui.form.on('Healthcare Insurance Claim', {
 			};
 		});
 
-		frm.set_query('healthcare_service_type', function() {
-			let service_doctypes = ['Therapy Type', 'Lab Test Template',
+		frm.set_query('template_type', function() {
+			let service_templates = ['Therapy Type', 'Lab Test Template',
 				'Clinical Procedure Template', 'Appointment Type'];
+			return {
+				filters: {
+					name: ['in', service_templates],
+					is_billable: 1
+				}
+			};
+		});
+
+		frm.set_query('link_doctype', function() {
+			let service_doctypes = ['Therapy Session', 'Lab Test',
+				'Clinical Procedure', 'Patient Appointment', 'Healthcare Service Order'];
 			return {
 				filters: {
 					name: ['in', service_doctypes]

@@ -18,6 +18,12 @@
   "therapy_type",
   "practitioner",
   "department",
+  "insurance_section",
+  "insurance_subscription",
+  "insurance_claim",
+  "column_break_16",
+  "insurance_company",
+  "claim_status",
   "details_section",
   "medical_code",
   "duration",
@@ -236,11 +242,46 @@
    "fieldname": "more_information_section",
    "fieldtype": "Section Break",
    "label": "More Information"
+  },
+  {
+   "fieldname": "insurance_section",
+   "fieldtype": "Section Break",
+   "label": "Insurance"
+  },
+  {
+   "allow_in_quick_entry": 1,
+   "fieldname": "insurance_subscription",
+   "fieldtype": "Link",
+   "label": "Insurance Subscription",
+   "options": "Healthcare Insurance Subscription"
+  },
+  {
+   "fieldname": "insurance_company",
+   "fieldtype": "Link",
+   "label": "Insurance Company",
+   "options": "Healthcare Insurance Company"
+  },
+  {
+   "fieldname": "column_break_16",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "insurance_claim",
+   "fieldtype": "Link",
+   "label": "Insurance Claim",
+   "options": "Healthcare Insurance Claim",
+   "read_only": 1
+  },
+  {
+   "fieldname": "claim_status",
+   "fieldtype": "Data",
+   "label": "Claim Status",
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2021-05-01 20:05:19.221039",
+ "modified": "2021-06-06 19:22:28.174582",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Therapy Session",
