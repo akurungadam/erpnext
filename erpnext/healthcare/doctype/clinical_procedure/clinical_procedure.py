@@ -48,12 +48,7 @@ class ClinicalProcedure(Document):
 
 	def on_submit(self):
 		if self.insurance_subscription and not self.insurance_claim:
-			make_insurance_claim(
-				doc=self,
-				service_type='Clinical Procedure Template',
-				service_template=self.procedure_template,
-				qty=1
-			)
+			self.insurance_claim = make_insurance_claim(self)
 
 	def set_status(self):
 		if self.docstatus == 0:

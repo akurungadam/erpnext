@@ -34,7 +34,10 @@
   "default_interval_uom",
   "section_break_36",
   "reference_url",
-  "change_in_item"
+  "change_in_item",
+  "service_order_defaults_section",
+  "patient_care_type",
+  "staff_role"
  ],
  "fields": [
   {
@@ -193,8 +196,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Abbr",
-   "no_copy": 1,
-   "reqd": 1
+   "no_copy": 1
   },
   {
    "fieldname": "dosage_form",
@@ -229,10 +231,28 @@
    "fieldtype": "Float",
    "label": "Rate",
    "mandatory_depends_on": "is_billable"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "service_order_defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Service Order Defaults"
+  },
+  {
+   "fieldname": "patient_care_type",
+   "fieldtype": "Link",
+   "label": "Patient Care Type",
+   "options": "Patient Care Type"
+  },
+  {
+   "fieldname": "staff_role",
+   "fieldtype": "Link",
+   "label": "Staff Role",
+   "options": "Role"
   }
  ],
  "links": [],
- "modified": "2021-04-21 17:17:52.995701",
+ "modified": "2021-06-06 00:45:53.598650",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Medication",

@@ -24,6 +24,10 @@ class PatientAppointment(Document):
 		self.validate_customer_created()
 		self.set_status()
 		self.set_title()
+		print(self.insurance_claim)
+		if self.appointment_type and self.insurance_subscription and not self.insurance_claim:
+			self.insurance_claim = make_insurance_claim(self)
+			print(self.insurance_claim)
 
 	def after_insert(self):
 		self.update_prescription_details()
@@ -31,17 +35,6 @@ class PatientAppointment(Document):
 		invoice_appointment(self)
 		self.update_fee_validity()
 		send_confirmation_msg(self)
-
-		if self.appointment_type and self.insurance_subscription and not self.insurance_claim:
-			billing_item, rate = get_service_item_and_practitioner_charge(self)
-
-			make_insurance_claim(
-				doc=self,
-				service_type='Appointment Type',
-				service_template=self.appointment_type,
-				qty=1,
-				billing_item=billing_item
-			)
 
 	def set_title(self):
 		self.title = _('{0} with {1}').format(self.patient_name or self.patient,

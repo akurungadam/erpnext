@@ -18,6 +18,7 @@ class HealthcareInsuranceSubscription(Document):
 
 		self.validate_expiry_date()
 		self.validate_subscription_overlap()
+		self.validate_policy_number()
 		self.set_title()
 
 	def validate_expiry_date(self):
@@ -35,15 +36,47 @@ class HealthcareInsuranceSubscription(Document):
 		if insurance_subscription:
 			frappe.throw(_('Patient {0} already has an active insurance subscription {1} with the coverage plan {2} for this period').format(
 				frappe.bold(self.patient), get_link_to_form('Healthcare Insurance Subscription', insurance_subscription),
-				frappe.bold(self.healthcare_insurance_coverage_plan)), title=_('Duplicate'))
+				frappe.bold(self.insurance_coverage_plan)), title=_('Duplicate'))
+
+	def validate_policy_number(self):
+		insurance_subscription = frappe.db.exists('Healthcare Insurance Subscription', {
+			'patient': self.patient,
+			'docstatus': 1,
+			'policy_number': self.policy_number
+		})
+		if insurance_subscription:
+			frappe.throw(_('Patient {0} already has an insurance subscription {1} with the same Policy Number {2}').format(
+				frappe.bold(self.patient), get_link_to_form('Healthcare Insurance Subscription', insurance_subscription),
+				frappe.bold(self.policy_number)), title=_('Duplicate'))
 
 	def set_title(self):
-		self.title = _('{0} - {1}').format(self.patient_name or self.patient, self.insurance_policy_number)
+		self.title = _('{0} - {1}').format(self.patient_name or self.patient, self.policy_number)
 
-def is_valid_insurance_subscription(subscription, company=None, on_date=None):
-	if subscription:
-		insurance_co, policy_expiry = frappe.db.get_value('Healthcare Insurance Subscription', subscription, ['insurance_company', 'policy_expiry_date'])
 
-		if getdate(policy_expiry) >= (getdate(on_date) or getdate()) and has_active_contract(insurance_co, company, on_date):
-			return True
+def is_valid_insurance_subscription(subscription, company, on_date=None):
+	'''
+	Returns True if Patient Insurance Policy is valid and if the contract is valid for the company
+	'''
+	policy_expiry = frappe.db.get_value('Healthcare Insurance Subscription', subscription, ['policy_expiry_date'])
+	if getdate(policy_expiry) >= (getdate(on_date) or getdate()):
+		return True
+
 	return False
+
+
+def get_insurance_price_lists(insurance_subscription, company):
+	'''
+	Returns plan price list and the default price list
+	'''
+	price_lists = {}
+	coverage_plan, insurance_company = frappe.db.get_value('Healthcare Insurance Subscription', insurance_subscription, ['insurance_coverage_plan', 'insurance_company'])
+	if coverage_plan:
+		plan_price_list = frappe.db.get_value('Healthcare Insurance Coverage Plan', coverage_plan, 'price_list')
+		if plan_price_list:
+			price_lists.update({'plan_price_list': plan_price_list})
+
+	if insurance_company and company:
+		default_price_list = frappe.db.get_value('Healthcare Insurance Contract', {'insurance_company': insurance_company, 'company': company}, 'default_price_list')
+		price_lists.update({'default_price_list': default_price_list})
+
+	return price_lists

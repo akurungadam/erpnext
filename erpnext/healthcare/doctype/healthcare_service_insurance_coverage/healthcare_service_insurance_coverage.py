@@ -7,8 +7,6 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, get_link_to_form, getdate
 from frappe.model.document import Document
-from erpnext.healthcare.doctype.healthcare_insurance_subscription.healthcare_insurance_subscription import is_valid_insurance_subscription
-from erpnext.healthcare.doctype.appointment_type.appointment_type import get_service_item_based_on_department
 
 class CoverageOverlapError(frappe.ValidationError): pass
 
@@ -85,7 +83,7 @@ class HealthcareServiceInsuranceCoverage(Document):
 			self.title = _('{} - {}').format(self.medical_code_standard, self.medical_code)
 
 
-def get_service_insurance_coverage(insurance_subscription, company, service_template_type, service_template, item_code=None, on_date=None):
+def get_service_insurance_coverage(service_template_type, service_template, item_code=None, on_date=None, coverage_plan=None):
 	'''
 	Find and return details of insurance coverage for a Healthcare Service
 	Returns a dict with name, mode_of_approval, coverage, discount form Healthcare Insurance Coverage
@@ -103,18 +101,14 @@ def get_service_insurance_coverage(insurance_subscription, company, service_temp
 	'''
 	if not on_date:
 		on_date = getdate()
-
-	if not is_valid_insurance_subscription(insurance_subscription, company, on_date): # also checks for valid contract
-		frappe.throw(_('Insurance Subscription {} is not valid as on {}').format(frappe.bold(insurance_subscription), on_date))
-
-	insurance_coverage_plan = frappe.db.get_value('Healthcare Insurance Subscription', insurance_subscription, 'insurance_coverage_plan')
+	print(on_date, getdate())
 
 	conditions = """ifnull(is_active, 0) = 1 and
-		ifnull(insurance_coverage_plan, '') = {}""".format(frappe.db.escape(insurance_coverage_plan or ''))
+		ifnull(insurance_coverage_plan, '') = {}""".format(frappe.db.escape(coverage_plan or ''))
 
 	conditions += """ and ('{}' between
-		ifnull(valid_from, '2000-01-01') and ifnull(valid_till, '2500-12-31'))""".format(on_date or getdate())
-
+		ifnull(valid_from, '2000-01-01') and ifnull(valid_till, '2500-12-31'))""".format(getdate(on_date) or getdate())
+	print(conditions)
 	conditions += """ and ((ifnull(healthcare_service, '') = {} and ifnull(healthcare_service_template, '') = {})""".format(
 			frappe.db.escape(service_template_type or ''), frappe.db.escape(service_template or ''))
 
@@ -142,6 +136,7 @@ def get_service_insurance_coverage(insurance_subscription, company, service_temp
 			ORDER BY valid_from DESC
 		'''.format(conditions), as_dict=1)
 
+	#TODO: extract method
 	if all_coverages and len(all_coverages) > 0:
 		coverages = list(filter(lambda d: d['healthcare_service_template'] == service_template, all_coverages))
 		if len(coverages) > 0:
