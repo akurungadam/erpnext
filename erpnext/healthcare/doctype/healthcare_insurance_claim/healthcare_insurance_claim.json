@@ -45,7 +45,9 @@
   "invoice_details_section",
   "claimed_qty",
   "column_break_31",
-  "total_claim_amount"
+  "total_claim_amount",
+  "insurance_claim_details_section_section",
+  "insurance_claim_details"
  ],
  "fields": [
   {
@@ -311,12 +313,22 @@
    "fieldtype": "Link",
    "label": "Service Coverage",
    "options": "Healthcare Service Insurance Coverage"
+  },
+  {
+   "fieldname": "insurance_claim_details_section_section",
+   "fieldtype": "Section Break",
+   "label": "Insurance Claim Details"
+  },
+  {
+   "fieldname": "insurance_claim_details",
+   "fieldtype": "Table",
+   "options": "Healthcare Insurance Claim Detail"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-06 21:43:09.634107",
+ "modified": "2021-06-10 21:37:47.072690",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim",
