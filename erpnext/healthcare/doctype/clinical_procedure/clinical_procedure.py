@@ -48,7 +48,7 @@ class ClinicalProcedure(Document):
 
 	def on_submit(self):
 		if self.insurance_subscription and not self.insurance_claim:
-			self.insurance_claim = make_insurance_claim(self)
+			make_insurance_claim(self)
 
 	def set_status(self):
 		if self.docstatus == 0:
@@ -101,8 +101,8 @@ class ClinicalProcedure(Document):
 				frappe.throw(_('Please set Customer in Patient {0}').format(frappe.bold(self.patient)), title=_('Customer Not Found'))
 
 		self.db_set('status', 'Completed')
-		if self.healthcare_service_order:
-			frappe.db.set_value('Healthcare Service Order', self.healthcare_service_order, 'status', 'Completed')
+		if self.service_order:
+			frappe.db.set_value('Healthcare Service Order', self.service_order, 'status', 'Completed')
 
 		if self.consume_stock and self.items:
 			return stock_entry

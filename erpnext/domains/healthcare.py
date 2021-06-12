@@ -46,7 +46,7 @@ data = {
 			{
 				'fieldname': 'patient_payable_amount', 'label': 'Patient Payable Amount', 'fieldtype': 'Currency',
 				'insert_after': 'total_insurance_claim_amount', 'read_only': True,
-				'depends_on':'eval:doc.docstatus < 1 && doc.total_insurance_claim_amount'
+				'depends_on':'doc.total_insurance_claim_amount'
 			}
 		],
 		'Sales Invoice Item': [
@@ -69,6 +69,10 @@ data = {
 			{
 				'fieldname': 'insurance_claim', 'label': 'Insurance Claim', 'fieldtype': 'Link',
 				'read_only': True, 'insert_after': 'insurance_claim_amount', 'options': 'Healthcare Insurance Claim'
+			},
+			{
+				'fieldname': 'insurance_company', 'label': 'Insurance Company', 'fieldtype': 'Link',
+				'read_only': True, 'insert_after': 'insurance_claim', 'options': 'Healthcare Insurance Company'
 			}
 		],
 		'Stock Entry': [

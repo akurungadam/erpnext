@@ -473,6 +473,7 @@
    "fieldname": "insurance_claim",
    "fieldtype": "Link",
    "label": "Insurance Claim",
+   "no_copy": 1,
    "options": "Healthcare Insurance Claim",
    "read_only": 1
   },
@@ -483,9 +484,11 @@
   },
   {
    "allow_on_submit": 1,
+   "fetch_from": "insurance_claim.status",
    "fieldname": "claim_status",
    "fieldtype": "Data",
    "label": "Claim Status",
+   "no_copy": 1,
    "read_only": 1
   }
  ],
@@ -494,18 +497,18 @@
  "links": [
   {
    "link_doctype": "Lab Test",
-   "link_fieldname": "healthcare_service_order"
+   "link_fieldname": "service_order"
   },
   {
    "link_doctype": "Clinical Procedure",
-   "link_fieldname": "healthcare_service_order"
+   "link_fieldname": "service_order"
   },
   {
    "link_doctype": "Therapy Session",
-   "link_fieldname": "healthcare_service_order"
+   "link_fieldname": "service_order"
   }
  ],
- "modified": "2021-06-06 20:37:52.147257",
+ "modified": "2021-06-12 21:16:05.431171",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Order",

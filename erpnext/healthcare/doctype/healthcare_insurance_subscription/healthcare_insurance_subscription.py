@@ -53,9 +53,10 @@ class HealthcareInsuranceSubscription(Document):
 		self.title = _('{0} - {1}').format(self.patient_name or self.patient, self.policy_number)
 
 
-def is_valid_insurance_subscription(subscription, company, on_date=None):
+def is_valid_insurance_policy(subscription, on_date=None, company=None):
 	'''
-	Returns True if Patient Insurance Policy is valid and if the contract is valid for the company
+	Returns True if Patient Insurance Policy is valid
+	#TODO: If company is received, checks if the company has a valid contract
 	'''
 	policy_expiry = frappe.db.get_value('Healthcare Insurance Subscription', subscription, ['policy_expiry_date'])
 	if getdate(policy_expiry) >= (getdate(on_date) or getdate()):

@@ -10,25 +10,28 @@
   "naming_series",
   "patient",
   "patient_name",
+  "gender",
+  "birth_date",
   "column_break_4",
   "company",
   "posting_date",
   "status",
   "amended_from",
-  "service_details_section",
-  "service_template_doctype",
-  "service_template",
-  "item_code",
-  "medical_code",
-  "link_doctype",
-  "column_break_22",
-  "qty",
   "subscription_details_section",
   "insurance_subscription",
   "insurance_company",
   "column_break_10",
   "policy_number",
   "policy_expiry_date",
+  "service_details_section",
+  "service_template_doctype",
+  "service_template",
+  "item_code",
+  "medical_code",
+  "column_break_22",
+  "link_doctype",
+  "service_order",
+  "qty",
   "coverage_details_section",
   "mode_of_approval",
   "claim_validity_end_date",
@@ -42,6 +45,7 @@
   "discount_amount",
   "amount",
   "coverage_amount",
+  "patient_payable",
   "invoice_details_section",
   "claimed_qty",
   "column_break_31",
@@ -88,13 +92,13 @@
   },
   {
    "fetch_from": "insurance_subscription.insurance_company",
-   "fetch_if_empty": 1,
    "fieldname": "insurance_company",
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Insurance Company",
    "options": "Healthcare Insurance Company",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fieldname": "subscription_details_section",
@@ -114,6 +118,7 @@
    "fieldname": "service_template",
    "fieldtype": "Dynamic Link",
    "label": "Service Template",
+   "no_copy": 1,
    "options": "service_template_doctype",
    "reqd": 1
   },
@@ -213,22 +218,26 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Policy Number",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fetch_from": "insurance_subscription.policy_expiry_date",
    "fieldname": "policy_expiry_date",
    "fieldtype": "Date",
    "label": "Policy Expiry Date",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fetch_if_empty": 1,
    "fieldname": "item_code",
    "fieldtype": "Link",
    "label": "Item Code",
+   "no_copy": 1,
    "options": "Item",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "collapsible": 1,
@@ -290,6 +299,7 @@
    "fieldname": "service_template_doctype",
    "fieldtype": "Link",
    "label": "Service Template Type",
+   "no_copy": 1,
    "options": "DocType",
    "reqd": 1
   },
@@ -312,6 +322,7 @@
    "fieldname": "service_coverage",
    "fieldtype": "Link",
    "label": "Service Coverage",
+   "no_copy": 1,
    "options": "Healthcare Service Insurance Coverage"
   },
   {
@@ -320,15 +331,44 @@
    "label": "Insurance Claim Details"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "insurance_claim_details",
    "fieldtype": "Table",
+   "no_copy": 1,
    "options": "Healthcare Insurance Claim Detail"
+  },
+  {
+   "fieldname": "patient_payable",
+   "fieldtype": "Currency",
+   "label": "Patient Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "service_order",
+   "fieldtype": "Link",
+   "label": "Service Order",
+   "options": "Healthcare Service Order"
+  },
+  {
+   "fetch_from": "patient.sex",
+   "fieldname": "gender",
+   "fieldtype": "Link",
+   "label": "Gender",
+   "options": "Gender",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "patient.dob",
+   "fieldname": "birth_date",
+   "fieldtype": "Date",
+   "label": "Birth Date",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-10 21:37:47.072690",
+ "modified": "2021-06-12 20:25:37.711216",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim",
