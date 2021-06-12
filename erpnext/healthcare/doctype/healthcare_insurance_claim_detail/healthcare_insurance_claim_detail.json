@@ -3,87 +3,12 @@
  "creation": "2021-06-10 21:28:09.421224",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
-  "service_order",
-  "column_break_3",
-  "service_doctype",
-  "service_document",
-  "invoice_and_claim_details_section_section",
-  "sales_invoice",
-  "invoice_qty",
-  "invoice_amount",
-  "column_break_8",
-  "claim_amount",
-  "discount_amount"
- ],
- "fields": [
-  {
-   "fieldname": "service_doctype",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Service DocType",
-   "options": "DocType"
-  },
-  {
-   "fieldname": "service_document",
-   "fieldtype": "Dynamic Link",
-   "in_list_view": 1,
-   "label": "Service Document",
-   "options": "service_doctype"
-  },
-  {
-   "fieldname": "sales_invoice",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Sales Invoice",
-   "options": "Sales Invoice"
-  },
-  {
-   "fieldname": "invoice_qty",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Invoice Qty"
-  },
-  {
-   "fieldname": "invoice_amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Invoice Amount"
-  },
-  {
-   "fieldname": "claim_amount",
-   "fieldtype": "Currency",
-   "label": "Claim Amount"
-  },
-  {
-   "fieldname": "discount_amount",
-   "fieldtype": "Currency",
-   "label": "Discount Amount"
-  },
-  {
-   "fieldname": "column_break_3",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "invoice_and_claim_details_section_section",
-   "fieldtype": "Section Break",
-   "label": "Invoice and Claim Details"
-  },
-  {
-   "fieldname": "column_break_8",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "service_order",
-   "fieldtype": "Link",
-   "label": "Service Order",
-   "options": "Healthcare Service Order"
-  }
- ],
+ "field_order": [],
+ "fields": [],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2021-06-12 10:24:17.156177",
+ "modified": "2021-06-12 18:18:46.688625",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim Detail",

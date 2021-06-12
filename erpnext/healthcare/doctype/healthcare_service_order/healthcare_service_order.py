@@ -20,9 +20,7 @@ class HealthcareServiceOrder(Document):
 
 	def on_submit(self):
 		if self.insurance_subscription and not self.insurance_claim:
-			insurance_claim = make_insurance_claim(self)
-			self.db_set('insurance_claim', insurance_claim)
-			# self.reload()
+			self.insurance_claim = make_insurance_claim(self)
 
 	def set_title(self):
 		if frappe.flags.in_import and self.title:
@@ -31,10 +29,11 @@ class HealthcareServiceOrder(Document):
 		self.title = f'{self.patient_name} - {self.order_template}'
 
 	def before_submit(self):
-		if self.status != 'Active':
+		if self.status != 'Active': #TODO: allow submit with status completed?
 			self.status = 'Active'
 
 	def set_patient_age(self):
+		#TODO: fix
 		patient = frappe.get_doc('Patient', self.patient)
 		self.patient_age_data = patient.get_age()
 		self.patient_age = dateutil.relativedelta.relativedelta(getdate(), getdate(patient.dob))
@@ -52,6 +51,12 @@ class HealthcareServiceOrder(Document):
 			frappe.throw(_('Order Type and Order Template are mandatory to create Healthcare Service Order'))
 
 
+def update_service_order(doc, status):
+	# update self.status
+	# get claim, update child
+	pass
+
+
 @frappe.whitelist()
 def set_status(docname, status):
 	frappe.db.set_value('Healthcare Service Order', docname, 'status', status)
@@ -65,7 +70,7 @@ def make_clinical_procedure(service_order):
 
 	doc = frappe.new_doc('Clinical Procedure')
 	doc.procedure_template = service_order.order_template
-	doc.healthcare_service_order = service_order.name
+	doc.service_order = service_order.name
 	doc.company = service_order.company
 	doc.patient = service_order.patient
 	doc.patient_name = service_order.patient_name
@@ -89,7 +94,7 @@ def make_lab_test(service_order):
 
 	doc = frappe.new_doc('Lab Test')
 	doc.template = service_order.order_template
-	doc.healthcare_service_order = service_order.name
+	doc.service_order = service_order.name
 	doc.company = service_order.company
 	doc.patient = service_order.patient
 	doc.patient_name = service_order.patient_name
@@ -115,7 +120,7 @@ def make_therapy_session(service_order):
 
 	doc = frappe.new_doc('Therapy Session')
 	doc.therapy_type = service_order.order_template
-	doc.healthcare_service_order = service_order.name
+	doc.service_order = service_order.name
 	doc.company = service_order.company
 	doc.patient = service_order.patient
 	doc.patient_name = service_order.patient_name

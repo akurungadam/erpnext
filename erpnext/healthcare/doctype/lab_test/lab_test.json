@@ -69,7 +69,7 @@
   "legend_print_position",
   "result_legend",
   "more_information_section",
-  "healthcare_service_order",
+  "service_order",
   "invoiced",
   "section_break_50",
   "email_sent",
@@ -567,15 +567,6 @@
    "print_hide": 1
   },
   {
-   "fieldname": "healthcare_service_order",
-   "fieldtype": "Link",
-   "label": "Healthcare Service Order",
-   "no_copy": 1,
-   "options": "Healthcare Service Order",
-   "print_hide": 1,
-   "read_only": 1
-  },
-  {
    "allow_in_quick_entry": 1,
    "fieldname": "date",
    "fieldtype": "Date",
@@ -636,11 +627,20 @@
    "fieldtype": "Data",
    "label": "Claim Status",
    "read_only": 1
+  },
+  {
+   "fieldname": "service_order",
+   "fieldtype": "Link",
+   "label": "Healthcare Service Order",
+   "no_copy": 1,
+   "options": "Healthcare Service Order",
+   "print_hide": 1,
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-06 19:23:14.520939",
+ "modified": "2021-06-12 19:26:29.112636",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Lab Test",

@@ -26,8 +26,7 @@ class PatientAppointment(Document):
 		self.set_title()
 		print(self.insurance_claim)
 		if self.appointment_type and self.insurance_subscription and not self.insurance_claim:
-			self.insurance_claim = make_insurance_claim(self)
-			print(self.insurance_claim)
+			make_insurance_claim(self)
 
 	def after_insert(self):
 		self.update_prescription_details()

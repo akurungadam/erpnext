@@ -101,14 +101,13 @@ def get_service_insurance_coverage(service_template_type, service_template, item
 	'''
 	if not on_date:
 		on_date = getdate()
-	print(on_date, getdate())
 
 	conditions = """ifnull(is_active, 0) = 1 and
 		ifnull(insurance_coverage_plan, '') = {}""".format(frappe.db.escape(coverage_plan or ''))
 
 	conditions += """ and ('{}' between
 		ifnull(valid_from, '2000-01-01') and ifnull(valid_till, '2500-12-31'))""".format(getdate(on_date) or getdate())
-	print(conditions)
+
 	conditions += """ and ((ifnull(healthcare_service, '') = {} and ifnull(healthcare_service_template, '') = {})""".format(
 			frappe.db.escape(service_template_type or ''), frappe.db.escape(service_template or ''))
 
@@ -130,7 +129,17 @@ def get_service_insurance_coverage(service_template_type, service_template, item
 			frappe.db.escape(service_details.get('item_code') or ''), frappe.db.escape(service_details.get('item_group') or ''))
 
 	all_coverages = frappe.db.sql('''
-			SELECT name, healthcare_service_template, medical_code, item, item_group, valid_from, valid_till, insurance_coverage_plan, mode_of_approval, coverage, discount
+			SELECT
+				name,
+				healthcare_service_template,
+				medical_code, item,
+				item_group,
+				valid_from,
+				valid_till,
+				insurance_coverage_plan,
+				mode_of_approval,
+				coverage,
+				discount
 			FROM `tabHealthcare Service Insurance Coverage`
 			WHERE {}
 			ORDER BY valid_from DESC

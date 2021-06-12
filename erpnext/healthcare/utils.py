@@ -82,7 +82,8 @@ def get_appointments_to_invoice(patient, company):
 						'income_account': income_account,
 						'discount_percentage':discount,
 						'insurance_claim_coverage': coverage,
-						'insurance_claim': appointment.insurance_claim
+						'insurance_claim': appointment.insurance_claim,
+						'insurance_company': appointment.insurance_company
 					})
 			else:
 				appointments_to_invoice.append({
@@ -92,7 +93,6 @@ def get_appointments_to_invoice(patient, company):
 					'rate': practitioner_charge,
 					'income_account': income_account
 				})
-	print(appointments_to_invoice)
 	return appointments_to_invoice
 
 
@@ -134,7 +134,8 @@ def get_encounters_to_invoice(patient, company):
 						'income_account': income_account,
 						'discount_percentage':discount,
 						'insurance_claim_coverage': coverage,
-						'insurance_claim': encounter.insurance_claim
+						'insurance_claim': encounter.insurance_claim,
+						'insurance_company': encounter.insurance_company
 					})
 			else:
 				encounters_to_invoice.append({
@@ -154,7 +155,7 @@ def get_lab_tests_to_invoice(patient, company):
 		'Lab Test',
 		fields=['*'],
 		filters={'patient': patient.name, 'company': company, 'invoiced': False,
-			'docstatus': 1, 'healthcare_service_order': ''}
+			'docstatus': 1, 'service_order': ''}
 	)
 	for lab_test in lab_tests:
 		item, is_billable = frappe.get_cached_value('Lab Test Template', lab_test.template, ['item', 'is_billable'])
@@ -169,7 +170,8 @@ def get_lab_tests_to_invoice(patient, company):
 						'rate': price_list_rate,
 						'discount_percentage':discount,
 						'insurance_claim_coverage': coverage,
-						'insurance_claim': lab_test.insurance_claim
+						'insurance_claim': lab_test.insurance_claim,
+						'insurance_company': lab_test.insurance_company
 					})
 			else:
 				lab_tests_to_invoice.append({
@@ -177,7 +179,7 @@ def get_lab_tests_to_invoice(patient, company):
 					'reference_name': lab_test.name,
 					'service': item
 				})
-	print(lab_tests_to_invoice)
+
 	return lab_tests_to_invoice
 
 
@@ -187,7 +189,7 @@ def get_clinical_procedures_to_invoice(patient, company):
 		'Clinical Procedure',
 		fields='*',
 		filters={'patient': patient.name, 'company': company, 'invoiced': False,
-			'docstatus': 1, 'healthcare_service_order': ''}
+			'docstatus': 1, 'service_order': ''}
 	)
 	for procedure in procedures:
 		if procedure.appointment:
@@ -207,7 +209,8 @@ def get_clinical_procedures_to_invoice(patient, company):
 						'rate': rate,
 						'discount_percentage': discount,
 						'insurance_claim_coverage': coverage,
-						'insurance_claim': procedure.insurance_claim
+						'insurance_claim': procedure.insurance_claim,
+						'insurance_company': procedure.insurance_company
 					})
 			else:
 				clinical_procedures_to_invoice.append({
@@ -318,7 +321,7 @@ def get_therapy_sessions_to_invoice(patient, company):
 			'company': company,
 			'therapy_plan': ('not in', therapy_plans_created_from_template),
 			'docstatus': 1,
-			'healthcare_service_order': ''
+			'service_order': ''
 		}
 	)
 	for therapy in therapy_sessions:
@@ -362,7 +365,8 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 						'qty': service_order.quantity if service_order.quantity else 1,
 						'discount_percentage':discount,
 						'insurance_claim_coverage': coverage,
-						'insurance_claim': service_order.insurance_claim
+						'insurance_claim': service_order.insurance_claim,
+						'insurance_company': service_order.insurance_company
 					})
 			else:
 				service_order_to_invoice.append({
@@ -371,7 +375,7 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 					'service': item,
 					'qty': service_order.quantity if service_order.quantity else 1
 				})
-	print(service_order_to_invoice)
+
 	return service_order_to_invoice
 
 
@@ -586,7 +590,7 @@ def set_invoiced(item, method, ref_invoice=None):
 		}
 		dt = order_map.get(order_doctype)
 		if dt:
-			frappe.db.set_value(dt, {'healthcare_service_order': item.reference_dn}, 'invoiced', invoiced)
+			frappe.db.set_value(dt, {'service_order': item.reference_dn}, 'invoiced', invoiced)
 
 
 def validate_invoiced_on_submit(item):
