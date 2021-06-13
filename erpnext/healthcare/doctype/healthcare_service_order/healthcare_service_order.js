@@ -19,12 +19,12 @@ frappe.ui.form.on('Healthcare Service Order', {
 			};
 		});
 
-		frm.set_query('order_doctype', function() {
-			let service_order_doctypes = ['Medication', 'Therapy Type', 'Lab Test Template',
+		frm.set_query('template_dt', function() {
+			let order_template_doctypes = ['Medication', 'Therapy Type', 'Lab Test Template',
 				'Clinical Procedure Template'];
 			return {
 				filters: {
-					name: ['in', service_order_doctypes]
+					name: ['in', order_template_doctypes]
 				}
 			};
 		});
@@ -120,20 +120,20 @@ frappe.ui.form.on('Healthcare Service Order', {
 	setup_create_buttons: function(frm) {
 		if (frm.doc.docstatus !== 1 || frm.doc.status === 'Completed') return;
 
-		if (frm.doc.order_doctype === 'Clinical Procedure Template') {
+		if (frm.doc.template_dt === 'Clinical Procedure Template') {
 
 			frm.add_custom_button(__('Clinical Procedure'), function() {
 				frm.trigger('make_clinical_procedure');
 			}, __('Create'));
 
 
-		} else if (frm.doc.order_doctype === 'Lab Test Template') {
+		} else if (frm.doc.template_dt === 'Lab Test Template') {
 
 			frm.add_custom_button(__('Lab Test'), function() {
 				frm.trigger('make_lab_test');
 			}, __('Create'));
 
-		} else if (frm.doc.order_doctype === 'Therapy Type') {
+		} else if (frm.doc.template_dt === 'Therapy Type') {
 
 			frm.add_custom_button(__('Therapy Session'), function() {
 				frm.trigger('make_therapy_session');

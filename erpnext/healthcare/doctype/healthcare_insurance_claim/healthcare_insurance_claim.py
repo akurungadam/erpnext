@@ -27,10 +27,10 @@ class HealthcareInsuranceClaim(Document):
 
 	def before_submit(self):
 		if not self.self.service_coverage or self.coverage_amount <= 0:
-			frappe.throw(_('You can only submit Insurance Claim with a valid Coerage and Coverage Amount'), title='Not Allowed') #TODO: MSG
+			frappe.throw(_('A valid <b>Coverage Amount</b> is required to submit Insurance Claim'), title='Not Allowed') #TODO: MSG
 
 		if self.status not in ['Approved', 'Rejected']:
-			frappe.throw(_('You can only submit Insurance Claim in <b>Approved</b> or <b>Rejected</b> status'), title='Not Allowed') #TODO: MSG
+			frappe.throw(_('Insurance Claims can only be submitted with Status <b>Approved</b> or <b>Rejected</b>'), title='Not Allowed') #TODO: MSG
 
 	def on_update(self):
 		self.update_link_claim_status()
@@ -75,13 +75,14 @@ class HealthcareInsuranceClaim(Document):
 			frappe.throw(_('Quantity cannot be more than Claim Quantity')) #TODO: MSG
 
 	def update_link_claim_status(self, cancel=False): #TODO: if required update child doc links in child table
-		link_name = frappe.db.exists(self.link_doctype, {'insurance_claim': self.name})
+		# link_name = frappe.db.exists(self.link_doctype, {'insurance_claim': self.name})
 
-		if link_name and not cancel:
-			frappe.db.set_value(self.link_doctype, link_name, 'claim_status', self.status)
-		elif link_name and cancel:
-			frappe.db.set_value(self.link_doctype, link_name, {'insurance_claim': '', 'claim_status': ''})
-			frappe.msgprint(_('Insurance Claim unlinked from {0} {1}').format(self.link_doctype, frappe.bold(link_name)))
+		# if link_name and not cancel:
+		# 	frappe.db.set_value(self.link_doctype, link_name, 'claim_status', self.status)
+		# elif link_name and cancel:
+		# 	frappe.db.set_value(self.link_doctype, link_name, {'insurance_claim': '', 'claim_status': ''})
+		# 	frappe.msgprint(_('Insurance Claim unlinked from {0} {1}').format(self.link_doctype, frappe.bold(link_name)))
+		pass
 
 	def set_invoice_details(self, qty, amount, cancel=False):
 		# TODO: moved to claim detail, fix
@@ -280,7 +281,7 @@ def get_template_details(doc):
 	#TODO: refactor
 	'''
 	if doc.doctype == 'Healthcare Service Order':
-		template_detail = frappe.db.get_value(doc.doctype, doc.name, ['order_doctype as template_dt', 'order_template as template_dn'], as_dict=True)
+		template_detail = frappe.db.get_value(doc.doctype, doc.name, ['template_dt', 'template_dn'], as_dict=True)
 	elif doc.doctype == 'Lab Test':
 		template_detail = {'template_dt': 'Lab Test Template', 'template_dn': doc.template}
 	elif doc.doctype == 'Clinical Procedure':

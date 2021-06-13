@@ -10,6 +10,7 @@
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
+  "service_order",
   "template",
   "lab_test_name",
   "lab_test_group",
@@ -69,7 +70,6 @@
   "legend_print_position",
   "result_legend",
   "more_information_section",
-  "service_order",
   "invoiced",
   "section_break_50",
   "email_sent",
@@ -631,16 +631,18 @@
   {
    "fieldname": "service_order",
    "fieldtype": "Link",
-   "label": "Healthcare Service Order",
+   "in_standard_filter": 1,
+   "label": "Service Order",
    "no_copy": 1,
    "options": "Healthcare Service Order",
    "print_hide": 1,
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-12 19:26:29.112636",
+ "modified": "2021-06-13 11:48:21.332004",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Lab Test",

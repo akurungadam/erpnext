@@ -9,6 +9,7 @@
  "field_order": [
   "naming_series",
   "title",
+  "service_order",
   "appointment",
   "procedure_template",
   "medical_code",
@@ -48,7 +49,6 @@
   "column_break_27",
   "consumption_details",
   "sb_refs",
-  "service_order",
   "invoiced",
   "prescription",
   "amended_from"
@@ -353,16 +353,18 @@
   {
    "fieldname": "service_order",
    "fieldtype": "Link",
-   "label": "Healthcare Service Order",
+   "in_standard_filter": 1,
+   "label": "Service Order",
    "no_copy": 1,
    "options": "Healthcare Service Order",
    "print_hide": 1,
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-12 19:25:38.699679",
+ "modified": "2021-06-13 11:50:52.316283",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Clinical Procedure",

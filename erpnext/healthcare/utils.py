@@ -350,7 +350,7 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 		}
 	)
 	for service_order in service_orders:
-		item, is_billable = frappe.get_cached_value(service_order.order_doctype, service_order.order_template,
+		item, is_billable = frappe.get_cached_value(service_order.template_dt, service_order.template_dn,
 			['item', 'is_billable'])
 
 		if is_billable:
@@ -581,14 +581,14 @@ def set_invoiced(item, method, ref_invoice=None):
 		# if order is invoiced, set both order and service transaction as invoiced
 		frappe.db.set_value(item.reference_dt, item.reference_dn, 'invoiced', invoiced)
 
-		order_doctype = frappe.db.get_value('Healthcare Service Order', item.reference_dn, 'order_doctype')
+		template_dt = frappe.db.get_value('Healthcare Service Order', item.reference_dn, 'template_dt')
 
 		order_map = {
 			'Clinical Procedure Template': 'Clinical Procedure',
 			'Therapy Type': 'Therapy Session',
 			'Lab Test Template': 'Lab Test'
 		}
-		dt = order_map.get(order_doctype)
+		dt = order_map.get(template_dt)
 		if dt:
 			frappe.db.set_value(dt, {'service_order': item.reference_dn}, 'invoiced', invoiced)
 
