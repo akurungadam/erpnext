@@ -26,41 +26,34 @@ class HealthcareServiceOrder(Document):
 		if frappe.flags.in_import and self.title:
 			return
 
-		self.title = f'{self.patient_name} - {self.order_template}'
+		self.title = f'{self.patient_name} - {self.template_dn}'
 
 	def before_submit(self):
-		if self.status != 'Active': #TODO: allow submit with status completed?
+		if self.status != 'Active':
 			self.status = 'Active'
 
 	def set_patient_age(self):
-		#TODO: fix
+		#TODO: fix, in all docs
 		patient = frappe.get_doc('Patient', self.patient)
 		self.patient_age_data = patient.get_age()
 		self.patient_age = dateutil.relativedelta.relativedelta(getdate(), getdate(patient.dob))
 
 	def set_order_details(self):
-		if self.order_doctype and self.order_template:
-			order_template = frappe.get_doc(self.order_doctype, self.order_template)
+		if self.template_dt and self.template_dn:
+			template_dn = frappe.get_doc(self.template_dt, self.template_dn)
 
-			if not self.patient_care_type and order_template.get('patient_care_type'):
-				self.patient_care_type = order_template.patient_care_type
+			if not self.patient_care_type and template_dn.get('patient_care_type'):
+				self.patient_care_type = template_dn.patient_care_type
 
-			if not self.staff_role and order_template.get('staff_role'):
-				self.staff_role = order_template.staff_role
+			if not self.staff_role and template_dn.get('staff_role'):
+				self.staff_role = template_dn.staff_role
 		else:
-			frappe.throw(_('Order Type and Order Template are mandatory to create Healthcare Service Order'))
-
-
-def update_service_order(doc, status):
-	# update self.status
-	# get claim, update child
-	pass
+			frappe.throw(_('Order Template Type and Order Template are mandatory to create Healthcare Service Order'))
 
 
 @frappe.whitelist()
 def set_status(docname, status):
 	frappe.db.set_value('Healthcare Service Order', docname, 'status', status)
-
 
 @frappe.whitelist()
 def make_clinical_procedure(service_order):
@@ -69,7 +62,7 @@ def make_clinical_procedure(service_order):
 		service_order = frappe._dict(service_order)
 
 	doc = frappe.new_doc('Clinical Procedure')
-	doc.procedure_template = service_order.order_template
+	doc.procedure_template = service_order.template_dn
 	doc.service_order = service_order.name
 	doc.company = service_order.company
 	doc.patient = service_order.patient
@@ -93,7 +86,7 @@ def make_lab_test(service_order):
 		service_order = frappe._dict(service_order)
 
 	doc = frappe.new_doc('Lab Test')
-	doc.template = service_order.order_template
+	doc.template = service_order.template_dn
 	doc.service_order = service_order.name
 	doc.company = service_order.company
 	doc.patient = service_order.patient
@@ -119,7 +112,7 @@ def make_therapy_session(service_order):
 		service_order = frappe._dict(service_order)
 
 	doc = frappe.new_doc('Therapy Session')
-	doc.therapy_type = service_order.order_template
+	doc.therapy_type = service_order.template_dn
 	doc.service_order = service_order.name
 	doc.company = service_order.company
 	doc.patient = service_order.patient

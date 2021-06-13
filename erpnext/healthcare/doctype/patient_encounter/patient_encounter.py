@@ -77,8 +77,8 @@ class PatientEncounter(Document):
 	def get_order_details(self, doc, line_item):
 		order = frappe.get_doc({
 			'doctype': 'Healthcare Service Order',
-			'order_doctype': doc.doctype,
-			'order_template': doc.name,
+			'template_dt': doc.doctype,
+			'template_dn': doc.name,
 			'order_date': self.encounter_date,
 			'order_time': self.encounter_time,
 			'company': self.company,

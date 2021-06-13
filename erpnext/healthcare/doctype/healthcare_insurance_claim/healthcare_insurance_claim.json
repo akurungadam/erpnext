@@ -26,11 +26,9 @@
   "service_details_section",
   "service_template_doctype",
   "service_template",
+  "column_break_22",
   "item_code",
   "medical_code",
-  "column_break_22",
-  "link_doctype",
-  "service_order",
   "qty",
   "coverage_details_section",
   "mode_of_approval",
@@ -283,13 +281,6 @@
    "label": "Discount Amount"
   },
   {
-   "fieldname": "link_doctype",
-   "fieldtype": "Link",
-   "label": "Link Type",
-   "options": "DocType",
-   "read_only": 1
-  },
-  {
    "allow_in_quick_entry": 1,
    "fieldname": "qty",
    "fieldtype": "Float",
@@ -344,12 +335,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "service_order",
-   "fieldtype": "Link",
-   "label": "Service Order",
-   "options": "Healthcare Service Order"
-  },
-  {
    "fetch_from": "patient.sex",
    "fieldname": "gender",
    "fieldtype": "Link",
@@ -368,7 +353,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-12 20:25:37.711216",
+ "modified": "2021-06-12 23:28:54.892276",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim",
