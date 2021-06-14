@@ -14,7 +14,7 @@ from frappe.core.doctype.sms_settings.sms_settings import send_sms
 from erpnext.hr.doctype.employee.employee import is_holiday
 from erpnext.healthcare.doctype.healthcare_settings.healthcare_settings import get_receivable_account, get_income_account
 from erpnext.healthcare.utils import check_fee_validity, get_service_item_and_practitioner_charge, manage_fee_validity
-from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim
+from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim, add_claim_detail
 
 class PatientAppointment(Document):
 	def validate(self):
@@ -24,9 +24,7 @@ class PatientAppointment(Document):
 		self.validate_customer_created()
 		self.set_status()
 		self.set_title()
-		print(self.insurance_claim)
-		if self.appointment_type and self.insurance_subscription and not self.insurance_claim:
-			make_insurance_claim(self)
+
 
 	def after_insert(self):
 		self.update_prescription_details()
@@ -34,6 +32,12 @@ class PatientAppointment(Document):
 		invoice_appointment(self)
 		self.update_fee_validity()
 		send_confirmation_msg(self)
+
+		if self.insurance_subscription and self.appointment_type and not check_fee_validity(self):
+			insurance_claim, claim_status = make_insurance_claim(self)
+			self.db_set({'insurance_claim': insurance_claim, 'claim_status': claim_status})
+			self.reload()
+
 
 	def set_title(self):
 		self.title = _('{0} with {1}').format(self.patient_name or self.patient,

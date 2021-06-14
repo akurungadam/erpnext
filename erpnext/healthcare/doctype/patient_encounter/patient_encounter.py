@@ -17,6 +17,12 @@ class PatientEncounter(Document):
 		self.set_title()
 		self.validate_medications()
 
+	def after_insert(self):
+		if self.insurance_subscription and self.appointment_type and not self.insurance_claim :
+			insurance_claim, claim_status = make_insurance_claim(self)
+			self.db_set({'insurance_claim': insurance_claim, 'claim_status': claim_status})
+			self.reload()
+
 	def on_update(self):
 		if self.appointment:
 			frappe.db.set_value('Patient Appointment', self.appointment, 'status', 'Closed')
@@ -26,9 +32,6 @@ class PatientEncounter(Document):
 			create_therapy_plan(self)
 
 		self.make_healthcare_service_order()
-
-		if self.appointment_type and self.insurance_subscription and not self.insurance_claim:
-			make_insurance_claim(self)
 
 	def on_cancel(self):
 		if self.appointment:
@@ -92,7 +95,7 @@ class PatientEncounter(Document):
 			'patient_care_type': doc.get('patient_care_type'),
 			'intent': line_item.get('intent'),
 			'priority': line_item.get('priority'),
-			'quantity': line_item.get_quantity() if line_item.doctype == 'Drug Prescription' else 1,
+			'quantity': line_item.get_quantity() if line_item.doctype in ['Drug Prescription', 'Therapy Plan Detail'] else 1,
 			'dosage': line_item.get('dosage'),
 			'dosage_form': line_item.get('dosage_form'),
 			'period': line_item.get('period'),

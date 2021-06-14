@@ -8,6 +8,7 @@
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
+  "title",
   "patient",
   "patient_name",
   "gender",
@@ -234,7 +235,6 @@
    "label": "Item Code",
    "no_copy": 1,
    "options": "Item",
-   "read_only": 1,
    "reqd": 1
   },
   {
@@ -266,7 +266,7 @@
    "fieldname": "mode_of_approval",
    "fieldtype": "Select",
    "label": "Claim Mode of Approval",
-   "options": "Automatic\nManual",
+   "options": "\nAutomatic\nManual",
    "reqd": 1
   },
   {
@@ -284,7 +284,8 @@
    "allow_in_quick_entry": 1,
    "fieldname": "qty",
    "fieldtype": "Float",
-   "label": " Quantity"
+   "label": " Quantity",
+   "reqd": 1
   },
   {
    "fieldname": "service_template_doctype",
@@ -326,7 +327,8 @@
    "fieldname": "insurance_claim_details",
    "fieldtype": "Table",
    "no_copy": 1,
-   "options": "Healthcare Insurance Claim Detail"
+   "options": "Healthcare Insurance Claim Detail",
+   "read_only": 1
   },
   {
    "fieldname": "patient_payable",
@@ -348,12 +350,19 @@
    "fieldtype": "Date",
    "label": "Birth Date",
    "read_only": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Title",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-12 23:28:54.892276",
+ "modified": "2021-06-13 20:07:36.100654",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim",
@@ -407,7 +416,7 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "title_field": "patient_name",
+ "title_field": "title",
  "track_changes": 1,
  "track_seen": 1
 }

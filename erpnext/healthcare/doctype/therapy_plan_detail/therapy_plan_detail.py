@@ -7,4 +7,5 @@ from __future__ import unicode_literals
 from frappe.model.document import Document
 
 class TherapyPlanDetail(Document):
-	pass
+	def get_quantity(self):
+		return self.no_of_sessions

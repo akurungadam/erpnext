@@ -66,9 +66,9 @@ frappe.ui.form.on('Healthcare Service Order', {
 					frm.events.set_status(frm, 'On Hold');
 				}, __('Status'));
 
-				frm.add_custom_button(__('Completed'), function() {
-					frm.events.set_status(frm, 'Completed');
-				}, __('Status'));
+				// frm.add_custom_button(__('Completed'), function() {
+				// 	frm.events.set_status(frm, 'Completed');
+				// }, __('Status'));
 			}
 
 			if (frm.doc.status === 'On Hold') {
@@ -76,9 +76,9 @@ frappe.ui.form.on('Healthcare Service Order', {
 					frm.events.set_status(frm, 'Active');
 				}, __('Status'));
 
-				frm.add_custom_button(__('Completed'), function() {
-					frm.events.set_status(frm, 'Completed');
-				}, __('Status'));
+				// frm.add_custom_button(__('Completed'), function() {
+				// 	frm.events.set_status(frm, 'Completed');
+				// }, __('Status'));
 			}
 
 		} else if (frm.doc.docstatus === 2) {
@@ -104,11 +104,11 @@ frappe.ui.form.on('Healthcare Service Order', {
 
 	set_status: function(frm, status) {
 		frappe.call({
-			method: 'erpnext.healthcare.doctype.healthcare_service_order.healthcare_service_order.set_status',
+			method: 'erpnext.healthcare.doctype.healthcare_service_order.healthcare_service_order.set_service_order_status',
 			async: false,
 			freeze: true,
 			args: {
-				docname: frm.doc.name,
+				service_order: frm.doc.name,
 				status: status
 			},
 			callback: function(r) {

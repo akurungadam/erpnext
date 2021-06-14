@@ -3,12 +3,94 @@
  "creation": "2021-06-10 21:28:09.421224",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [],
- "fields": [],
+ "field_order": [
+  "service_dt",
+  "service_dn",
+  "column_break_3",
+  "qty",
+  "invoice_and_claim_details_section_section",
+  "sales_invoice",
+  "invoice_qty",
+  "invoice_amount",
+  "column_break_8",
+  "claim_amount",
+  "discount_amount",
+  "journal_entry"
+ ],
+ "fields": [
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "invoice_qty",
+   "fieldtype": "Float",
+   "label": "Invoice Qty"
+  },
+  {
+   "fieldname": "invoice_amount",
+   "fieldtype": "Currency",
+   "label": "Invoice Amount"
+  },
+  {
+   "fieldname": "claim_amount",
+   "fieldtype": "Currency",
+   "label": "Claim Amount"
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "invoice_and_claim_details_section_section",
+   "fieldtype": "Section Break",
+   "label": "Invoice and Claim Details"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Journal Entry booked against Sales Invoice to transfer Claim Amount to the Party linked to Insurance Company",
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Journal Entry",
+   "options": "Journal Entry"
+  },
+  {
+   "fieldname": "service_dt",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "service_dn",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Service Document",
+   "options": "service_dt"
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Qty"
+  }
+ ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2021-06-12 18:18:46.688625",
+ "modified": "2021-06-13 19:33:40.722747",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim Detail",
