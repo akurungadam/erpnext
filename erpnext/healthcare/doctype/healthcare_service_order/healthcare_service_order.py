@@ -10,17 +10,13 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import getdate
 from six import string_types
-from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim
+from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim, add_claim_detail
 
 class HealthcareServiceOrder(Document):
 	def validate(self):
 		self.set_patient_age()
 		self.set_order_details()
 		self.set_title()
-
-	def on_submit(self):
-		if self.insurance_subscription and not self.insurance_claim:
-			self.insurance_claim = make_insurance_claim(self)
 
 	def set_title(self):
 		if frappe.flags.in_import and self.title:
@@ -29,8 +25,11 @@ class HealthcareServiceOrder(Document):
 		self.title = f'{self.patient_name} - {self.template_dn}'
 
 	def before_submit(self):
-		if self.status != 'Active':
+		if self.status not in ['Active', 'On Hold', 'Unknown']:
 			self.status = 'Active'
+
+		if self.insurance_subscription and not self.insurance_claim:
+			self.insurance_claim, self.claim_status = make_insurance_claim(self)
 
 	def set_patient_age(self):
 		#TODO: fix, in all docs
@@ -51,9 +50,22 @@ class HealthcareServiceOrder(Document):
 			frappe.throw(_('Order Template Type and Order Template are mandatory to create Healthcare Service Order'))
 
 
+def update_service_order_status(service_order, service_dt, service_dn, status=None, qty=1):
+	service_order = frappe.get_doc('Healthcare Service Order', service_order)
+	if not service_order or not service_order.insurance_claim:
+		return
+	set_service_order_status(service_order, 'Scheduled')
+
+	# also update insurance claim #TODO: extract
+	insurance_claim = frappe.db.get_value('Healthcare Service Order', service_order, 'insurance_claim')
+	if insurance_claim:
+		add_claim_detail(insurance_claim, service_dt, service_dn, qty)
+
+
 @frappe.whitelist()
-def set_status(docname, status):
-	frappe.db.set_value('Healthcare Service Order', docname, 'status', status)
+def set_service_order_status(service_order, status):
+	frappe.db.set_value('Healthcare Service Order', service_order, 'status', status)
+
 
 @frappe.whitelist()
 def make_clinical_procedure(service_order):
@@ -75,6 +87,10 @@ def make_clinical_procedure(service_order):
 	doc.start_time = service_order.occurrence_time
 	doc.medical_department = service_order.medical_department
 	doc.medical_code = service_order.medical_code
+	doc.insurance_subscription = service_order.insurance_subscription
+	doc.insurance_company = service_order.insurance_company
+	doc.insurance_claim = service_order.insurance_claim
+	doc.claim_status = service_order.claim_status
 
 	return doc
 
@@ -102,6 +118,10 @@ def make_lab_test(service_order):
 	doc.time = service_order.occurrence_time
 	doc.invoiced = service_order.invoiced
 	doc.medical_code = service_order.medical_code
+	doc.insurance_subscription = service_order.insurance_subscription
+	doc.insurance_company = service_order.insurance_company
+	doc.insurance_claim = service_order.insurance_claim
+	doc.claim_status = service_order.claim_status
 
 	return doc
 
@@ -125,5 +145,9 @@ def make_therapy_session(service_order):
 	doc.start_time = service_order.occurrence_time
 	doc.invoiced = service_order.invoiced
 	doc.medical_code = service_order.medical_code
+	doc.insurance_subscription = service_order.insurance_subscription
+	doc.insurance_company = service_order.insurance_company
+	doc.insurance_claim = service_order.insurance_claim
+	doc.claim_status = service_order.claim_status
 
 	return doc

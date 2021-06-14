@@ -19,27 +19,32 @@ class HealthcareInsuranceClaim(Document):
 		self.validate_insurance_policy()
 		self.validate_service_template()
 		self.validate_status()
-		self.validate_qty()
+		self.validate_claim_details()
+		self.set_title()
 
-		if self.status == 'Draft':
+		if self.status in ['Draft']:
 			if self.set_insurance_coverage_details() and self.mode_of_approval == 'Automatic' and self.coverage_amount > 0 and self.service_coverage:
 				self.status = 'Approved'
+			else:
+				self.status = 'Rejected'
 
 	def before_submit(self):
-		if not self.self.service_coverage or self.coverage_amount <= 0:
-			frappe.throw(_('A valid <b>Coverage Amount</b> is required to submit Insurance Claim'), title='Not Allowed') #TODO: MSG
-
 		if self.status not in ['Approved', 'Rejected']:
-			frappe.throw(_('Insurance Claims can only be submitted with Status <b>Approved</b> or <b>Rejected</b>'), title='Not Allowed') #TODO: MSG
+			frappe.throw(_('Insurance Claims can only be submitted with Status <b>Approved</b> or <b>Rejected</b>'), title=_('Not Allowed')) #TODO: MSG
+
+		if self.status == 'Approved' and (not self.service_coverage or self.coverage_amount <= 0):
+			frappe.throw(_('A valid <b>Coverage Amount</b> is required to submit Insurance Claim'), title=_('Not Allowed')) #TODO: MSG
+
 
 	def on_update(self):
 		self.update_link_claim_status()
 
 	def after_insert(self):
 		self.update_link_claim_status()
+		# TODO: stop alert
 		if self.coverage and self.coverage > 0:
 			frappe.msgprint(_('Insurance Claim {} Created<br>Discount: {}, Coverage: {},  Status: {}').format(
-				self.name, self.discount, self.coverage, self.status), alert=True, indicator='green') #TODO: move?
+				self.name, self.discount, self.coverage, self.status), alert=True, indicator='green')
 
 	def on_update_after_submit(self):
 		self.update_link_claim_status()
@@ -53,26 +58,30 @@ class HealthcareInsuranceClaim(Document):
 		if self.status != 'Invoiced':
 			self.update_link_claim_status(cancel=True)
 
+	def set_title(self):
+		self.title = f'{self.patient_name} - {self.service_template}'
+
 	def validate_status(self):
 		if self.status == 'Approved' and self.coverage_amount <= 0:
 			frappe.throw('Insurance Claim cannot be Approved without a valid Coverage Amount')
 
 	def validate_insurance_policy(self):
 		if not self.insurance_subscription:
-			frappe.throw(_('Patient Insurance Policy is mandatory to create Insurance Claim'), title='Missing Insurance Policy') #TODO: MSG
+			frappe.throw(_('Patient Insurance Policy is mandatory to create Insurance Claim'), title=_('Missing Insurance Policy')) #TODO: MSG
 
 		if not is_valid_insurance_policy(self.insurance_subscription, self.posting_date, self.company): # also checks for valid contract
 			frappe.throw(_('Patient Insurance Policy {} is not valid as on {}').format(
-				frappe.bold(self.insurance_subscription), self.posting_date), title='Invalid Insurance Policy')
+				frappe.bold(self.insurance_subscription), self.posting_date), title=_('Invalid Insurance Policy'))
 
 	def validate_service_template(self): #TODO: Remove, mandatory fields set
 		if not (self.service_template_doctype and self.service_template) or not self.item_code:
-			frappe.throw(_('Service Template or Item is mandatory to create Insurance Claim'), title='Missing Mandatory Fields') #TODO: MSG
+			frappe.throw(_('Service Template or Item is mandatory to create Insurance Claim'), title=_('Missing Mandatory Fields')) #TODO: MSG
 
-	def validate_qty(self):
+	def validate_claim_details(self):
 		total_detail_qty = sum(d.get('qty') or 0 for d in self.insurance_claim_details)
 		if total_detail_qty > self.qty:
 			frappe.throw(_('Quantity cannot be more than Claim Quantity')) #TODO: MSG
+
 
 	def update_link_claim_status(self, cancel=False): #TODO: if required update child doc links in child table
 		# link_name = frappe.db.exists(self.link_doctype, {'insurance_claim': self.name})
@@ -83,28 +92,6 @@ class HealthcareInsuranceClaim(Document):
 		# 	frappe.db.set_value(self.link_doctype, link_name, {'insurance_claim': '', 'claim_status': ''})
 		# 	frappe.msgprint(_('Insurance Claim unlinked from {0} {1}').format(self.link_doctype, frappe.bold(link_name)))
 		pass
-
-	def set_invoice_details(self, qty, amount, cancel=False):
-		# TODO: moved to claim detail, fix
-		if not cancel:
-			if self.status == 'Invoiced':
-				frappe.throw(_('Insurance Claim {} already in Invoiced status').format(frappe.bold(self.name)), title='Not Allowed') #TODO: MSG
-			self.claimed_qty += qty
-			self.total_claim_amount += amount
-		else:
-			self.claimed_qty -= qty # if self.claimed_qty > 0 else 0
-			self.total_claim_amount -= amount
-
-		if self.claimed_qty > self.qty:
-			frappe.throw(_('Invoiced Quantity cannot be more than Approved Quantity {}').format(frappe.bold(self.qty)), title='Not Allowed') #TODO: MSG
-
-		# Update status
-		if self.claimed_qty < self.qty:
-			self.status = 'Partially Invoiced'
-		else:
-			self.status = 'Invoiced'
-
-		self.save()
 
 	def set_insurance_coverage_details(self):
 		#TODO: move all alerts to separate method
@@ -149,54 +136,10 @@ class HealthcareInsuranceClaim(Document):
 				alert=True, indicator='red')
 			return False
 
+		self.patient_payable = flt(self.amount) - flt(self.coverage_amount)
+
+		frappe.msgprint(_('Insurance Claim {} inserted').format(self.name), alert=True, indicator='blue') #TODO: remove
 		return True
-
-
-def add_claim_detail(doc, claim):
-	# set claim detail
-	detail = claim.append('insurance_claim_details')
-	detail.service_doctype = doc.doctype
-	detail.service_document = doc.name
-	detail.qty = doc.quantity if doc.get('quantity') else 1
-
-
-def set_invoice_detail(invoice_detail):
-	# on Submit - Find and update detail
-	# on Cancel - Unlink
-	# on Return - Deduct
-	pass
-
-
-def get_service_claim_details(service_dt, service_dn, service_order=None):
-	'''
-	Returns claim details for the service
-	'''
-	claim_details = frappe.db.sql('''
-		select
-			ic.name as claim,
-			ic.status as claim_status,
-			icd.name as claim_detail
-		from
-			`tabHealthcare Insurance Claim Detail` icd
-		join
-			`tabHealthcare Insurance Claim` ic
-		on
-			icd.parent = ic.name
-		where
-			icd.service_doctype = {} and
-			icd.service_document = {}
-	'''.format(frappe.db.escape(service_dt), frappe.db.escape(service_dn)), as_dict=1)
-
-	return claim_details[0] if claim_details and claim_details[0] else None
-
-
-def update_insurance_claim(doc):
-	claim_details = get_service_claim_details(doc.doctype, doc.name)
-
-	if claim_details:
-		claim = frappe.db.get_doc('Healthcare Insurance Claim', claim_details.claim)
-		add_claim_detail(doc, claim)
-		claim.save(ignore_permissions=True)
 
 
 def make_insurance_claim(doc):
@@ -225,16 +168,60 @@ def make_insurance_claim(doc):
 	claim.item_code = template_detail.get('item_code')
 	#TODO: set medical code if available
 
-	if doc.doctype != 'Healthcare Service Order':
-		add_claim_detail(claim, doc)
+	# Add claim detail only if not Healthcare Servie Order
+	if doc.doctype in ['Patient Appointment', 'Patient Encounter']:
+		claim.append('insurance_claim_details', {
+			'service_dt': doc.doctype,
+			'service_dn': doc.name,
+			'qty': claim.qty
+		})
 
 	claim.status = 'Draft'
 	claim.insert(ignore_permissions=True)
 
-	claim.reload()
+	# claim.reload()
+	print(claim.status)
 	if claim.status == 'Approved':
 		claim.submit()
 
+	return claim.name, claim.status
+
+
+def add_claim_detail(claim, service_dt, service_dn, qty=1):
+	if not frappe.db.exists('Healthcare Insurance Claim Detail', {'parent': claim, 'service_dt': service_dt, 'service_dn': service_dn}):
+		# set claim detail
+		claim = frappe.get_doc('Healthcare Insurance Claim', claim)
+		# if not any(d['service_dn'] == service_dn for d in claim.insurance_claim_details):
+		claim.append('insurance_claim_details', {
+			'service_dt': service_dt,
+			'service_dn': service_dn,
+			'qty': qty
+		})
+		claim.save(ignore_permissions=True)
+		frappe.msgprint(_('Insurance Claim Detail updated'), alert=1)
+	else:
+		frappe.msgprint(_('Service already added to Insurance Claim Detail') , alert=1)
+
+# def set_invoice_details(claim, sales_invoice, cancel=False):
+# 	if not cancel:
+# 		if self.status == 'Invoiced':
+# 			frappe.throw(_('Insurance Claim {} already in Invoiced status').format(frappe.bold(self.name)), title=_('Not Allowed')) #TODO: MSG
+# 		self.claimed_qty += qty
+# 		self.total_claim_amount += amount
+# 	else:
+# 		self.claimed_qty -= qty # if self.claimed_qty > 0 else 0
+# 		self.total_claim_amount -= amount
+
+# 	if self.claimed_qty > self.qty:
+# 		frappe.throw(_('Invoiced Quantity cannot be more than Approved Quantity {}').format(frappe.bold(self.qty)), title=_('Not Allowed')) #TODO: MSG
+
+# 	# Update status
+# 	if self.claimed_qty < self.qty:
+# 		self.status = 'Partially Invoiced'
+# 	else:
+# 		self.status = 'Invoiced'
+
+# 	self.save()
 
 def get_insurance_price_list_rate(item_code, policy, company=None):
 	'''
@@ -269,7 +256,6 @@ def get_item_price_list_rate(price_list, item_code):
 		return frappe.db.get_value('Item Price', item_price, 'price_list_rate')
 
 
-@frappe.whitelist()
 def get_template_details(doc):
 	'''
 	Returns a dict with

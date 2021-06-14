@@ -621,8 +621,6 @@
   },
   {
    "allow_on_submit": 1,
-   "fetch_from": "insurance_claim.approval_status",
-   "fetch_if_empty": 1,
    "fieldname": "claim_status",
    "fieldtype": "Data",
    "label": "Claim Status",
@@ -642,7 +640,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-13 11:48:21.332004",
+ "modified": "2021-06-13 18:34:29.949879",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Lab Test",

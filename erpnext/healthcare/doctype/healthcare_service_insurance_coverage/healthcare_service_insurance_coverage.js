@@ -39,5 +39,13 @@ frappe.ui.form.on('Healthcare Service Insurance Coverage', {
 				}
 			};
 		});
+
+		frm.set_query('healthcare_service_template', function() {
+			if (frm.doc.healthcare_service != 'Appointment Type') {
+				return {
+					filters: { is_billable: 1 }
+				}
+			}
+		});
 	}
 });

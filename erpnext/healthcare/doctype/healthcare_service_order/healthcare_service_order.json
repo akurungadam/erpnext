@@ -101,6 +101,7 @@
   {
    "fieldname": "order_group",
    "fieldtype": "Link",
+   "in_standard_filter": 1,
    "label": "Order Group (Encounter)",
    "options": "Patient Encounter"
   },
@@ -140,6 +141,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
+   "no_copy": 1,
    "options": "Draft\nActive\nScheduled\nIn Progress\nOn Hold\nCompleted\nCancelled\nReplaced\nEntered in Error\nUnknown",
    "reqd": 1,
    "search_index": 1
@@ -520,7 +522,7 @@
    "link_fieldname": "service_order"
   }
  ],
- "modified": "2021-06-13 12:05:43.434832",
+ "modified": "2021-06-13 21:57:49.807141",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Order",

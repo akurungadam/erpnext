@@ -1133,6 +1133,24 @@ var get_checked_values= function($results) {
 			else{
 				checked_values['discount_percentage'] = false;
 			}
+			if($(this).attr('data-insurance-claim-qty') != 'undefined'){
+				checked_values['claim_qty'] = $(this).attr('data-insurance-claim-qty');
+			}
+			else{
+				checked_values['claim_qty'] = false;
+			}
+			if($(this).attr('data-insurance-claim-company') != 'undefined'){
+				checked_values['insurance_company'] = $(this).attr('data-insurance-claim-company');
+			}
+			else{
+				checked_values['insurance_company'] = false;
+			}
+			if($(this).attr('data-insurance-claim-policy-number') != 'undefined'){
+				checked_values['patient_insurance_policy'] = $(this).attr('data-insurance-claim-policy-number');
+			}
+			else{
+				checked_values['patient_insurance_policy'] = false;
+			}
 			if($(this).attr('data-insurance-claim-coverage') != 'undefined'){
 				checked_values['insurance_claim_coverage'] = $(this).attr('data-insurance-claim-coverage');
 			}
@@ -1222,6 +1240,9 @@ var list_row_data_items = function(head, $row, result, invoice_healthcare_servic
 				data-qty = ${result.qty}
 				data-description = "${result.description}"
 				data-discount-percentage = ${result.discount_percentage}
+				data-insurance-claim-qty = ${result.claim_qty}
+				data-insurance-claim-company = "${result.insurance_company}"
+				data-insurance-claim-policy-number = "${result.patient_insurance_policy}"
 				data-insurance-claim-coverage = ${result.insurance_claim_coverage}
 				data-insurance-claim = ${result.insurance_claim}>
 				</div>`).append($row);

@@ -12,7 +12,7 @@ from erpnext.healthcare.doctype.lab_test.lab_test import create_sample_doc
 from erpnext.stock.stock_ledger import get_previous_sle
 from erpnext.stock.get_item_details import get_item_details
 from frappe.model.mapper import get_mapped_doc
-from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim
+from erpnext.healthcare.doctype.healthcare_service_order.healthcare_service_order import update_service_order_status
 
 class ClinicalProcedure(Document):
 	def validate(self):
@@ -43,12 +43,10 @@ class ClinicalProcedure(Document):
 			patient = frappe.get_doc('Patient', self.patient)
 			sample_collection = create_sample_doc(template, patient, None, self.company)
 			self.db_set('sample', sample_collection.name)
+			self.reload()
 
-		self.reload()
-
-	def on_submit(self):
-		if self.insurance_subscription and not self.insurance_claim:
-			make_insurance_claim(self)
+		if self.service_order:
+			update_service_order_status(self.service_order, self.doctype, self.name)
 
 	def set_status(self):
 		if self.docstatus == 0:
