@@ -17,6 +17,7 @@
   "company",
   "posting_date",
   "status",
+  "billing_status",
   "amended_from",
   "subscription_details_section",
   "insurance_subscription",
@@ -27,17 +28,17 @@
   "service_details_section",
   "service_template_doctype",
   "service_template",
+  "qty",
   "column_break_22",
   "item_code",
   "medical_code",
-  "qty",
   "coverage_details_section",
   "mode_of_approval",
   "claim_validity_end_date",
-  "insurance_coverage_plan",
   "price_list",
   "price_list_rate",
   "service_coverage",
+  "insurance_coverage_plan",
   "column_break_24",
   "discount",
   "coverage",
@@ -45,12 +46,12 @@
   "amount",
   "coverage_amount",
   "patient_payable",
+  "insurance_claim_details_section_section",
+  "insurance_claim_details",
   "invoice_details_section",
   "claimed_qty",
   "column_break_31",
-  "total_claim_amount",
-  "insurance_claim_details_section_section",
-  "insurance_claim_details"
+  "total_claim_amount"
  ],
  "fields": [
   {
@@ -118,8 +119,7 @@
    "fieldtype": "Dynamic Link",
    "label": "Service Template",
    "no_copy": 1,
-   "options": "service_template_doctype",
-   "reqd": 1
+   "options": "service_template_doctype"
   },
   {
    "fetch_if_empty": 1,
@@ -131,8 +131,7 @@
   },
   {
    "collapsible": 1,
-   "collapsible_depends_on": "eval:doc.coverage_amount",
-   "depends_on": "eval:doc.coverage_amount",
+   "depends_on": "eval:!doc.__islocal",
    "fieldname": "coverage_details_section",
    "fieldtype": "Section Break",
    "label": "Insurance Coverage Details"
@@ -140,13 +139,17 @@
   {
    "fieldname": "price_list_rate",
    "fieldtype": "Currency",
-   "label": "Price List Rate"
+   "label": "Price List Rate",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "allow_on_submit": 1,
+   "bold": 1,
    "fieldname": "amount",
    "fieldtype": "Currency",
    "label": "Amount",
+   "no_copy": 1,
    "read_only": 1
   },
   {
@@ -154,21 +157,27 @@
    "fieldtype": "Column Break"
   },
   {
+   "bold": 1,
    "fieldname": "discount",
    "fieldtype": "Percent",
-   "label": "Discount"
+   "label": "Discount",
+   "no_copy": 1
   },
   {
+   "bold": 1,
    "fieldname": "coverage",
    "fieldtype": "Percent",
-   "label": "Coverage"
+   "label": "Coverage",
+   "no_copy": 1
   },
   {
    "allow_on_submit": 1,
+   "bold": 1,
    "fieldname": "coverage_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Coverage Amount",
+   "no_copy": 1,
    "read_only": 1
   },
   {
@@ -192,7 +201,7 @@
    "in_standard_filter": 1,
    "label": "Status",
    "no_copy": 1,
-   "options": "Draft\nApproved\nRejected\nInvoiced\nPartially Invoiced\nPaid\nPartially Paid\nPayment Rejected",
+   "options": "Draft\nApproved\nRejected\nCancelled",
    "reqd": 1
   },
   {
@@ -234,14 +243,13 @@
    "fieldtype": "Link",
    "label": "Item Code",
    "no_copy": 1,
-   "options": "Item",
-   "reqd": 1
+   "options": "Item"
   },
   {
    "collapsible": 1,
+   "depends_on": "eval:doc.total_claim_amount > 0 || doc.claimed_qty > 0",
    "fieldname": "invoice_details_section",
-   "fieldtype": "Section Break",
-   "label": "Invoice Details"
+   "fieldtype": "Section Break"
   },
   {
    "description": "<b>Expiry Date of Patient's Insurance Policy</b> (via Healthcare Insurance Subscription) or <b>Validity End Date of Coverage</b> (via Healthcare Service Insurance Coverage)",
@@ -249,7 +257,9 @@
    "fetch_if_empty": 1,
    "fieldname": "claim_validity_end_date",
    "fieldtype": "Date",
-   "label": "Claim Validity End Date"
+   "label": "Claim Validity End Date",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "column_break_22",
@@ -259,13 +269,16 @@
    "fieldname": "insurance_coverage_plan",
    "fieldtype": "Link",
    "label": "Insurance Coverage Plan",
-   "options": "Healthcare Insurance Coverage Plan"
+   "no_copy": 1,
+   "options": "Healthcare Insurance Coverage Plan",
+   "read_only": 1
   },
   {
    "default": "Automatic",
    "fieldname": "mode_of_approval",
    "fieldtype": "Select",
    "label": "Claim Mode of Approval",
+   "no_copy": 1,
    "options": "\nAutomatic\nManual",
    "reqd": 1
   },
@@ -273,12 +286,17 @@
    "fieldname": "price_list",
    "fieldtype": "Link",
    "label": "Price List",
-   "options": "Price List"
+   "no_copy": 1,
+   "options": "Price List",
+   "read_only": 1
   },
   {
+   "bold": 1,
    "fieldname": "discount_amount",
    "fieldtype": "Data",
-   "label": "Discount Amount"
+   "label": "Discount Amount",
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "allow_in_quick_entry": 1,
@@ -292,14 +310,14 @@
    "fieldtype": "Link",
    "label": "Service Template Type",
    "no_copy": 1,
-   "options": "DocType",
-   "reqd": 1
+   "options": "DocType"
   },
   {
    "allow_on_submit": 1,
    "fieldname": "total_claim_amount",
    "fieldtype": "Currency",
    "label": "Total Claim Amount (via Sales Invoices)",
+   "no_copy": 1,
    "read_only": 1
   },
   {
@@ -308,6 +326,7 @@
    "fieldname": "claimed_qty",
    "fieldtype": "Float",
    "label": "Claimed Qty (via Sales Invoices)",
+   "no_copy": 1,
    "read_only": 1
   },
   {
@@ -331,9 +350,11 @@
    "read_only": 1
   },
   {
+   "bold": 1,
    "fieldname": "patient_payable",
    "fieldtype": "Currency",
    "label": "Patient Payable",
+   "no_copy": 1,
    "read_only": 1
   },
   {
@@ -357,12 +378,21 @@
    "hidden": 1,
    "label": "Title",
    "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "billing_status",
+   "fieldtype": "Select",
+   "label": "Billing Status",
+   "options": "Pending\nInvoiced\nPartially Invoiced\nPaid\nPartially Paid\nPayment Rejected",
+   "read_only": 1,
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-13 20:07:36.100654",
+ "modified": "2021-06-27 21:14:00.688708",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim",

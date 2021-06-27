@@ -53,7 +53,7 @@ class HealthcareInsuranceSubscription(Document):
 		self.title = _('{0} - {1}').format(self.patient_name or self.patient, self.policy_number)
 
 
-def is_valid_insurance_policy(subscription, on_date=None, company=None):
+def is_insurance_policy_valid(subscription, on_date=None, company=None):
 	'''
 	Returns True if Patient Insurance Policy is valid
 	#TODO: If company is received, checks if the company has a valid contract

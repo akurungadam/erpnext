@@ -22,23 +22,22 @@ frappe.ui.form.on('Healthcare Insurance Claim', {
 			};
 		});
 
-		frm.set_query('template_type', function() {
-			let service_templates = ['Therapy Type', 'Lab Test Template',
-				'Clinical Procedure Template', 'Appointment Type'];
+		frm.set_query('service_template_doctype', function() {
+			let service_templates = ['Appointment Type', 'Clinical Procedure Template', 'Therapy Type',
+			'Medication', 'Lab Test Template', 'Healthcare Service Unit Type'];
 			return {
 				filters: {
 					name: ['in', service_templates],
-					is_billable: 1
 				}
 			};
 		});
 
-		frm.set_query('link_doctype', function() {
-			let service_doctypes = ['Therapy Session', 'Lab Test',
-				'Clinical Procedure', 'Patient Appointment', 'Healthcare Service Order'];
-			return {
-				filters: {
-					name: ['in', service_doctypes]
+		frm.set_query('service_template', function() {
+			// let service_doctypes = ['Patient Appointment', 'Clinical Procedure', 'Therapy Session', 'Lab Test',
+			// 	'Patient Appointment', 'Healthcare Service Unit'];
+			if (frm.doc.service_template_doctype != 'Appointment Type') {
+				return {
+					filters: { is_billable: 1 }
 				}
 			};
 		});

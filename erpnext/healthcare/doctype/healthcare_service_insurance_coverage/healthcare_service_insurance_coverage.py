@@ -8,16 +8,20 @@ from frappe import _
 from frappe.utils import getdate, get_link_to_form, getdate
 from frappe.model.document import Document
 
-class CoverageOverlapError(frappe.ValidationError):
-    pass
+class CoverageOverlapError(frappe.ValidationError): pass
 
 class HealthcareServiceInsuranceCoverage(Document):
     def validate(self):
         if self.is_active:
+            self.validate_coverage_details()
             self.validate_dates()
             self.validate_overlaps()
 
         self.set_title()
+
+    def validate_coverage_details(self):
+        if self.coverage <= 0 or self.discount <= 0:
+            frappe.throw(_('Invalid Coverage / Discount percentage'))
 
     def validate_dates(self):
         if self.valid_from and self.valid_till:
@@ -62,29 +66,30 @@ class HealthcareServiceInsuranceCoverage(Document):
         if self.coverage_based_on == 'Service':
             return {'healthcare_service': self.healthcare_service, 'healthcare_service_template' : self.healthcare_service_template}
 
-        elif self.coverage_based_on == 'Medical Code':
-            return {'medical_code_standard': self.medical_code_standard, 'medical_code': self.medical_code}
+        # elif self.coverage_based_on == 'Medical Code':
+        #     return {'medical_code_standard': self.medical_code_standard, 'medical_code': self.medical_code}
 
-        elif self.coverage_based_on == 'Item Group':
-            return {'item_group': self.item_group}
+        # elif self.coverage_based_on == 'Item Group':
+        #     return {'item_group': self.item_group}
 
         elif self.coverage_based_on == 'Item':
             return {'item': self.item}
 
     def set_title(self):
         if self.coverage_based_on == 'Service':
-            self.title = _('{} - {}').format(self.healthcare_service, self.healthcare_service_template)
+            self.title = _('{} - {}').format(self.healthcare_service_template, self.healthcare_service)
 
         elif self.coverage_based_on == 'Item':
-            self.title = _('{} - {}').format(self.coverage_based_on,  self.item)
+            self.title = _('{} - {}').format(self.item, self.coverage_based_on)
 
-        elif self.coverage_based_on == 'Item Group':
-            self.title = _('{} - {}').format(self.coverage_based_on,  self.item_group)
+        # elif self.coverage_based_on == 'Item Group':
+        #     self.title = _('{} - {}').format(self.item_group, self.coverage_based_on)
 
-        elif self.coverage_based_on == 'Medical Code':
-            self.title = _('{} - {}').format(self.medical_code_standard, self.medical_code)
+        # elif self.coverage_based_on == 'Medical Code':
+        #     self.title = _('{} - {}').format(self.medical_code, self.medical_code_standard)
 
 
+# def get_service_insurance_coverage(item_code=None, on_date=None, coverage_plan=None):
 def get_service_insurance_coverage(service_template_type, service_template, item_code=None, on_date=None, coverage_plan=None):
     '''
     Find and return details of insurance coverage for a Healthcare Service
@@ -122,10 +127,11 @@ def get_service_insurance_coverage(service_template_type, service_template, item
         field_list = get_service_template_field_list(service_template_type)
         service_details = frappe.db.get_value(service_template_type, service_template, field_list, as_dict=1)
 
-    if service_details.get('medical_code_standard') and service_details.get('medical_code'):
-        conditions += """ or (ifnull(medical_code_standard, '') = {} and ifnull(medical_code, '') = {})""".format(
-                frappe.db.escape(service_details.get('medical_code_standard') or ''), frappe.db.escape(service_details.get('medical_code') or ''))
+    # if service_details.get('medical_code_standard') and service_details.get('medical_code'):
+    #     conditions += """ or (ifnull(medical_code_standard, '') = {} and ifnull(medical_code, '') = {})""".format(
+    #             frappe.db.escape(service_details.get('medical_code_standard') or ''), frappe.db.escape(service_details.get('medical_code') or ''))
 
+    # if service_details.get('item_code'):
     if service_details.get('item_code') or service_details.get('item_group'):
         conditions += """ or (ifnull(item, '') = {} or ifnull(item_group, '') = {}))""".format(
                 frappe.db.escape(service_details.get('item_code') or ''), frappe.db.escape(service_details.get('item_group') or ''))
@@ -148,26 +154,25 @@ def get_service_insurance_coverage(service_template_type, service_template, item
 		'''.format(conditions), as_dict=1)
 
     #TODO: extract method
-    print(all_coverages)
     if all_coverages and len(all_coverages) > 0:
         coverages = list(filter(lambda d: d['healthcare_service_template'] == service_template, all_coverages))
         if len(coverages) > 0:
             return coverages[0]
 
-        if service_details.get('medical_code'):
-            coverages = list(filter(lambda d: d['medical_code'] == service_details.get('medical_code'), all_coverages))
-            if len(coverages) > 0:
-                return coverages[0]
+        # if service_details.get('medical_code'):
+        #     coverages = list(filter(lambda d: d['medical_code'] == service_details.get('medical_code'), all_coverages))
+        #     if len(coverages) > 0:
+        #         return coverages[0]
 
         if service_details.get('item_code'):
             coverages = list(filter(lambda d: d['item'] == service_details.get('item_code'), all_coverages))
             if len(coverages) > 0:
                 return coverages[0]
 
-        if service_details.get('item_group'):
-            coverages = list(filter(lambda d: d['item_group'] == service_details.get('item_group'), all_coverages))
-            if len(coverages) > 0:
-                return coverages[0]
+        # if service_details.get('item_group'):
+        #     coverages = list(filter(lambda d: d['item_group'] == service_details.get('item_group'), all_coverages))
+        #     if len(coverages) > 0:
+        #         return coverages[0]
 
     return None
 
