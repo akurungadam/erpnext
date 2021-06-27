@@ -14,7 +14,7 @@ from frappe.core.doctype.sms_settings.sms_settings import send_sms
 from erpnext.hr.doctype.employee.employee import is_holiday
 from erpnext.healthcare.doctype.healthcare_settings.healthcare_settings import get_receivable_account, get_income_account
 from erpnext.healthcare.utils import check_fee_validity, get_service_item_and_practitioner_charge, manage_fee_validity
-from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim, add_claim_detail
+from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim
 
 class PatientAppointment(Document):
 	def validate(self):
@@ -34,10 +34,27 @@ class PatientAppointment(Document):
 		send_confirmation_msg(self)
 
 		if self.insurance_subscription and self.appointment_type and not check_fee_validity(self):
-			insurance_claim, claim_status = make_insurance_claim(self)
-			self.db_set({'insurance_claim': insurance_claim, 'claim_status': claim_status})
-			self.reload()
+			if frappe.db.get_single_value('Healthcare Settings', 'automate_appointment_invoicing'):
+				#TODO: apply insurance claim
+				frappe.msgprint(_('Insurance Claim not created!<br>Not supported as <b>Automate Appointment Invoicing</b> enabled'),
+					alert=True, indicator='warning')
+			else:
+				self.make_insurance_claim()
 
+	def make_insurance_claim(self):
+		billing_detail = get_service_item_and_practitioner_charge(self)
+		claim = make_insurance_claim(
+			patient=self.patient,
+			policy=self.insurance_subscription,
+			company=self.company,
+			template_dt='Appointment Type',
+			template_dn=self.appointment_type,
+			item_code=billing_detail.get('service_item'),
+			qty=1
+		)
+
+		if claim and claim.get('claim'):
+			self.db_set({'insurance_claim': claim.get('claim'), 'claim_status': claim.get('claim_status')})
 
 	def set_title(self):
 		self.title = _('{0} with {1}').format(self.patient_name or self.patient,
@@ -88,7 +105,6 @@ class PatientAppointment(Document):
 				msg = _('Patient {0} is not admitted in the service unit {1}').format(frappe.bold(self.patient), frappe.bold(self.service_unit)) + '<br>'
 				msg += _('Appointment for service units with Inpatient Occupancy can only be created against the unit where patient has been admitted.')
 				frappe.throw(msg, title=_('Invalid Healthcare Service Unit'))
-
 
 	def set_appointment_datetime(self):
 		self.appointment_datetime = "%s %s" % (self.appointment_date, self.appointment_time or "00:00:00")
@@ -225,6 +241,10 @@ def get_appointment_item(appointment_doc, item):
 
 def cancel_appointment(appointment_id):
 	appointment = frappe.get_doc('Patient Appointment', appointment_id)
+	if appointment.insurance_claim:
+		claim = frappe.get_doc('Healthcare Insurance Claim', appointment.insurance_claim)
+		claim.cancel()
+
 	if appointment.invoiced:
 		sales_invoice = check_sales_invoice_exists(appointment)
 		if sales_invoice and cancel_sales_invoice(sales_invoice):

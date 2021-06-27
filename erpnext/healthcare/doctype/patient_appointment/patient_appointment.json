@@ -286,6 +286,7 @@
    "label": "Notes"
   },
   {
+   "depends_on": "eval:doc.source!='Direct'",
    "fieldname": "referring_practitioner",
    "fieldtype": "Link",
    "ignore_user_permissions": 1,
@@ -428,7 +429,8 @@
    "fieldname": "insurance_subscription",
    "fieldtype": "Link",
    "label": "Insurance Subscription",
-   "options": "Healthcare Insurance Subscription"
+   "options": "Healthcare Insurance Subscription",
+   "read_only_depends_on": "eval:doc.insurance_claim"
   },
   {
    "fieldname": "insurance_claim",
@@ -455,7 +457,7 @@
   }
  ],
  "links": [],
- "modified": "2021-06-13 18:32:50.075200",
+ "modified": "2021-06-27 17:09:05.876180",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Patient Appointment",

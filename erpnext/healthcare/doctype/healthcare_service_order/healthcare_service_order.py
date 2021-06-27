@@ -21,42 +21,80 @@ class HealthcareServiceOrder(Document):
 	def set_title(self):
 		if frappe.flags.in_import and self.title:
 			return
-
 		self.title = f'{self.patient_name} - {self.template_dn}'
 
 	def before_submit(self):
 		if self.status not in ['Active', 'On Hold', 'Unknown']:
 			self.status = 'Active'
+	def before_insert(self):
+		self.status = 'Draft'
 
+		if self.amended_from:
+			frappe.db.set_value('Healthcare Service Order', self.amended_from, 'status', 'Replaced')
+
+	def on_submit(self):
 		if self.insurance_subscription and not self.insurance_claim:
-			self.insurance_claim, self.claim_status = make_insurance_claim(self)
+			self.make_insurance_claim()
+	
+	def make_insurance_claim(self):
+		claim = make_insurance_claim(
+			patient=self.patient,
+			policy=self.insurance_subscription,
+			company=self.company,
+			template_dt=self.template_dt,
+			template_dn=self.template_dn,
+			item_code=self.item_code,
+			qty=self.quantity
+		)
+
+		if claim and claim.get('claim'):
+			self.db_set({'insurance_claim': claim.get('claim'), 'claim_status': claim.get('claim_status')})
+
+	def before_cancel(self):
+		not_allowed = ['Scheduled', 'In Progress', 'Completed', 'On Hold']
+		if self.status in not_allowed:
+			frappe.throw(_('You cannot Cancel Service Order in {} status').format(', '.join(not_allowed)),
+			title=_('Not Allowed'))
+
+	def on_cancel(self):
+		if self.insurance_claim:
+			claim = frappe.get_doc('Healthcare Insurance Claim', self.insurance_claim)
+			claim.cancel()
+
+		if self.status == 'Active':
+			self.db_set('status', 'Cancelled')
 
 	def set_patient_age(self):
-		#TODO: fix, in all docs
 		patient = frappe.get_doc('Patient', self.patient)
 		self.patient_age_data = patient.get_age()
 		self.patient_age = dateutil.relativedelta.relativedelta(getdate(), getdate(patient.dob))
 
 	def set_order_details(self):
-		if self.template_dt and self.template_dn:
-			template_dn = frappe.get_doc(self.template_dt, self.template_dn)
+		if not self.template_dt and not self.template_dn:
+			frappe.throw(_('Order Template Type and Order Template are mandatory to create Healthcare Service Order'),
+				title=_('Missing Mandatory Fields'))
 
-			if not self.patient_care_type and template_dn.get('patient_care_type'):
-				self.patient_care_type = template_dn.patient_care_type
+		template = frappe.get_doc(self.template_dt, self.template_dn)
+		# set item code
+		self.item_code = template.get('item')
 
-			if not self.staff_role and template_dn.get('staff_role'):
-				self.staff_role = template_dn.staff_role
-		else:
-			frappe.throw(_('Order Template Type and Order Template are mandatory to create Healthcare Service Order'))
+		if not self.patient_care_type and template.get('patient_care_type'):
+			self.patient_care_type = template.patient_care_type
+
+		if not self.staff_role and template.get('staff_role'):
+			self.staff_role = template.staff_role
+
+		if not self.intent:
+			self.intent = 'Original Order'
+
+		if not self.priority:
+			self.priority = 'Routine'
 
 
 def update_service_order_status(service_order, service_dt, service_dn, status=None, qty=1):
-	service_order = frappe.get_doc('Healthcare Service Order', service_order)
-	if not service_order or not service_order.insurance_claim:
-		return
+
 	set_service_order_status(service_order, 'Scheduled')
 
-	# also update insurance claim #TODO: extract
 	insurance_claim = frappe.db.get_value('Healthcare Service Order', service_order, 'insurance_claim')
 	if insurance_claim:
 		add_claim_detail(insurance_claim, service_dt, service_dn, qty)
