@@ -10,19 +10,12 @@ from frappe.utils import cstr, getdate, add_days
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
 from erpnext.healthcare.utils import get_service_item_and_practitioner_charge
-from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim
 
 class PatientEncounter(Document):
 	def validate(self):
 		self.set_title()
 		self.validate_medications()
 		self.validate_therapies()
-
-	def after_insert(self):
-		if self.insurance_subscription and self.appointment_type and not self.insurance_claim :
-			insurance_claim, claim_status = make_insurance_claim(self)
-			self.db_set({'insurance_claim': insurance_claim, 'claim_status': claim_status})
-			self.reload()
 
 	def on_update(self):
 		if self.appointment:
@@ -95,7 +88,6 @@ class PatientEncounter(Document):
 			for therapy in self.therapies:
 				therapy_type = frappe.get_doc('Therapy Type', therapy.therapy_type)
 				order = self.get_order_details(therapy_type, therapy)
-				# order.quantity = therapy.no_of_sessions
 				order.insert(ignore_permissions=True, ignore_mandatory=True)
 				order.submit()
 
@@ -121,7 +113,8 @@ class PatientEncounter(Document):
 			'dosage': line_item.get('dosage'),
 			'dosage_form': line_item.get('dosage_form'),
 			'period': line_item.get('period'),
-			'expected_date': line_item.get('expected_date'),
+			'expected_date': line_item.get('expected_date') or line_item.get('date'),
+			'occurrence_date': line_item.get('expected_date') or line_item.get('date'),
 			'as_needed': line_item.get('as_needed'),
 			'staff_role': template_doc.get('staff_role'),
 			'note': line_item.get('note'),

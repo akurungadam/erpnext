@@ -26,8 +26,8 @@
   "policy_number",
   "policy_expiry_date",
   "service_details_section",
-  "service_template_doctype",
-  "service_template",
+  "template_dt",
+  "template_dn",
   "qty",
   "column_break_22",
   "item_code",
@@ -115,13 +115,6 @@
    "label": "Service"
   },
   {
-   "fieldname": "service_template",
-   "fieldtype": "Dynamic Link",
-   "label": "Service Template",
-   "no_copy": 1,
-   "options": "service_template_doctype"
-  },
-  {
    "fetch_if_empty": 1,
    "fieldname": "medical_code",
    "fieldtype": "Link",
@@ -131,6 +124,7 @@
   },
   {
    "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.service_coverage",
    "depends_on": "eval:!doc.__islocal",
    "fieldname": "coverage_details_section",
    "fieldtype": "Section Break",
@@ -306,13 +300,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "service_template_doctype",
-   "fieldtype": "Link",
-   "label": "Service Template Type",
-   "no_copy": 1,
-   "options": "DocType"
-  },
-  {
    "allow_on_submit": 1,
    "fieldname": "total_claim_amount",
    "fieldtype": "Currency",
@@ -387,12 +374,26 @@
    "options": "Pending\nInvoiced\nPartially Invoiced\nPaid\nPartially Paid\nPayment Rejected",
    "read_only": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "template_dt",
+   "fieldtype": "Link",
+   "label": "Service Template Type",
+   "no_copy": 1,
+   "options": "DocType"
+  },
+  {
+   "fieldname": "template_dn",
+   "fieldtype": "Dynamic Link",
+   "label": "Service Template",
+   "no_copy": 1,
+   "options": "template_dt"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2021-06-27 21:14:00.688708",
+ "modified": "2021-06-28 09:55:09.636531",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Claim",

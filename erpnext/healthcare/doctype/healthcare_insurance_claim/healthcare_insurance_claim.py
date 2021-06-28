@@ -8,14 +8,14 @@ import frappe
 from frappe import _
 from frappe.utils import getdate, flt, get_link_to_form
 from frappe.model.document import Document
-from erpnext.healthcare.doctype.healthcare_service_insurance_coverage.healthcare_service_insurance_coverage import get_service_insurance_coverage
+from erpnext.healthcare.doctype.healthcare_service_insurance_coverage.healthcare_service_insurance_coverage import get_insurance_coverage
 from erpnext.healthcare.doctype.healthcare_insurance_subscription.healthcare_insurance_subscription import is_insurance_policy_valid, get_insurance_price_lists
 
 class CoverageNotFoundError(frappe.ValidationError): pass
 class HealthcareInsuranceClaim(Document):
 	def validate(self):
 		self.validate_insurance_policy()
-		self.set_item_code()
+		self.set_and_validate_item_code()
 
 		if self.status in ['Draft', 'Approved']:
 			if not self.set_insurance_coverage():
@@ -82,7 +82,7 @@ class HealthcareInsuranceClaim(Document):
 		self.status = 'Cancelled'
 
 	def set_title(self):
-		self.title = f'{self.patient_name} - {self.service_template}'
+		self.title = f'{self.patient_name} - {self.template_dn} - {self.status}'
 
 	def update_link_claim_status(self):
 		'''
@@ -92,10 +92,10 @@ class HealthcareInsuranceClaim(Document):
 		if doc_link and doc_link.get('link_dt') and doc_link.get('link_dn'):
 			frappe.db.set_value(doc_link.get('link_dt'), doc_link.get('link_dn'), 'claim_status', self.status)
 
-	def set_item_code(self):
+	def set_and_validate_item_code(self):
 		# reset item_code only if service template selected
-		if self.service_template_doctype and self.service_template and self.service_template_doctype not in ['Appointment Type']:
-			self.item_code = frappe.db.get_value(self.service_template_doctype, self.service_template, 'item')
+		if self.template_dt and self.template_dn and self.template_dt not in ['Appointment Type']:
+			self.item_code = frappe.db.get_value(self.template_dt, self.template_dn, 'item')
 
 		if not self.item_code:
 			frappe.throw(_('Service Template or Item is required to create Insurance Claim'), title=_('Missing Mandatory Fields'))
@@ -105,8 +105,12 @@ class HealthcareInsuranceClaim(Document):
 		Set Insurance coverage for the Item and set coverage details
 		Retruns True if if Insurance Coverage present for template / item_code else show alert and return False
 		'''
-		coverage_detail = get_service_insurance_coverage(self.service_template_doctype, self.service_template,
-			self.item_code, self.posting_date, self.insurance_coverage_plan)
+		coverage_detail = get_insurance_coverage(
+			item_code=self.item_code,
+			template_dt=self.template_dt,
+			template_dn=self.template_dn,
+			on_date=self.posting_date,
+			coverage_plan=self.insurance_coverage_plan)
 
 		if not coverage_detail:
 			self.reset_claim_details()
@@ -175,7 +179,7 @@ class HealthcareInsuranceClaim(Document):
 		'''
 		Returns the linked service dt, dn
 		'''
-		if self.service_template_doctype == 'Appointment Type':
+		if self.template_dt == 'Appointment Type':
 			link_name = frappe.db.exists('Patient Appointment', {'insurance_claim': self.name})
 			if link_name:
 				return {'link_dt': 'Patient Appointment', 'link_dn': link_name}
@@ -184,7 +188,7 @@ class HealthcareInsuranceClaim(Document):
 			if link_name:
 				return {'link_dt': 'Patient Encounter', 'link_dn': link_name}
 
-		elif self.service_template_doctype == 'Healthcare Service Unit Type':
+		elif self.template_dt == 'Healthcare Service Unit Type':
 			link_name = frappe.db.exists('Inpatient Record', {'insurance_claim': self.name})
 			return {'link_dt': 'Inpatient Record', 'link_dn': link_name}
 
@@ -209,8 +213,8 @@ def make_insurance_claim(patient, policy, company, template_dt=None, template_dn
 	claim.company = company
 	claim.posting_date = getdate()
 
-	claim.service_template_doctype = template_dt
-	claim.service_template = template_dn
+	claim.template_dt = template_dt
+	claim.template_dn = template_dn
 	claim.item_code = item_code if item_code else frappe.db.get_value(template_dt, template_dn, 'item') #TODO: verify fieldname item
 	claim.qty = qty
 
@@ -231,23 +235,6 @@ def make_insurance_claim(patient, policy, company, template_dt=None, template_dn
 		'claim': claim.name,
 		'claim_status': claim.status
 	}
-
-
-def add_claim_detail(claim, service_dt, service_dn, qty=1):
-	if not frappe.db.exists('Healthcare Insurance Claim Detail', {'parent': claim, 'service_dt': service_dt, 'service_dn': service_dn}):
-		# set claim detail
-		claim = frappe.get_doc('Healthcare Insurance Claim', claim)
-		# if not any(d['service_dn'] == service_dn for d in claim.insurance_claim_details):
-		claim.append('insurance_claim_details', {
-			'service_dt': service_dt,
-			'service_dn': service_dn,
-			'qty': qty
-		})
-		claim.save(ignore_permissions=True)
-		frappe.msgprint(_('Insurance Claim Detail updated'), alert=1)
-	else:
-		frappe.msgprint(_('Service already added to Insurance Claim Detail') , alert=1)
-
 
 def get_insurance_price_list_rate(item_code, policy, company=None):
 	'''
@@ -301,7 +288,7 @@ def create_insurance_coverage(doc): #TODO: fix fieldnames
 
 	if doc.coverage_based_on == 'Service':
 		coverage_service.healthcare_service = doc.template_type
-		coverage_service.healthcare_service_template = doc.service_template
+		coverage_service.healthcare_service_template = doc.template_dn
 
 	elif doc.coverage_based_on == 'Medical Code':
 		coverage_service.medical_code = doc.medical_code
@@ -315,15 +302,18 @@ def create_insurance_coverage(doc): #TODO: fix fieldnames
 	coverage_service.end_date = doc.approval_validity_end_date
 	return coverage_service
 
-
-# def get_item_code(template_dt, template_dn):
-# 	from erpnext.healthcare.doctype.appointment_type.appointment_type import get_service_item_based_on_department
-# 	if template_dt == 'Appointment Type':
-# 		item_detail = get_service_item_based_on_department(template_dt, doc.department if doc.doctype == 'Patient Appointment' else doc.medical_department)
-# 		item_code = {'item_code':
-# 			item_detail.get('inpatient_visit_charge_item') if doc.inpatient_record else item_detail.get('op_consulting_charge_item')
-# 		}
-# 	elif template_detail.get('template_dt') == 'Therapy Plan Template':
-# 		item_code = frappe.db.get_value(template_detail.get('template_dt'), template_detail.get('template_dn'), ['linked_item as item_code'], as_dict=True)
+# not maintaining detail anymore, will update when incvoice is created
+# def add_claim_detail(claim, service_dt, service_dn, qty=1):
+# 	if not frappe.db.exists('Healthcare Insurance Claim Detail', {'parent': claim, 'service_dt': service_dt, 'service_dn': service_dn}):
+# 		# set claim detail
+# 		claim = frappe.get_doc('Healthcare Insurance Claim', claim)
+# 		# if not any(d['service_dn'] == service_dn for d in claim.insurance_claim_details):
+# 		claim.append('insurance_claim_details', {
+# 			'service_dt': service_dt,
+# 			'service_dn': service_dn,
+# 			'qty': qty
+# 		})
+# 		claim.save(ignore_permissions=True)
+# 		frappe.msgprint(_('Insurance Claim Detail updated'), alert=1)
 # 	else:
-# 		item_code = frappe.db.get_value(template_detail.get('template_dt'), template_detail.get('template_dn'), ['item as item_code'], as_dict=True)
+# 		frappe.msgprint(_('Service already added to Insurance Claim Detail') , alert=1)

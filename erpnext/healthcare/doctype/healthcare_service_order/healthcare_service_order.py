@@ -10,7 +10,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import getdate
 from six import string_types
-from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim, add_claim_detail
+from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import make_insurance_claim
 
 class HealthcareServiceOrder(Document):
 	def validate(self):
@@ -35,7 +35,7 @@ class HealthcareServiceOrder(Document):
 	def on_submit(self):
 		if self.insurance_subscription and not self.insurance_claim:
 			self.make_insurance_claim()
-	
+
 	def make_insurance_claim(self):
 		claim = make_insurance_claim(
 			patient=self.patient,
@@ -92,13 +92,9 @@ class HealthcareServiceOrder(Document):
 
 
 def update_service_order_status(service_order, service_dt, service_dn, status=None, qty=1):
-
+	# TODO: fix status updates from linked docs
 	set_service_order_status(service_order, 'Scheduled')
-
-	insurance_claim = frappe.db.get_value('Healthcare Service Order', service_order, 'insurance_claim')
-	if insurance_claim:
-		add_claim_detail(insurance_claim, service_dt, service_dn, qty)
-
+	
 
 @frappe.whitelist()
 def set_service_order_status(service_order, status):

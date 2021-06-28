@@ -9,13 +9,12 @@
  "field_order": [
   "title",
   "coverage_based_on",
+  "template_dt",
+  "template_dn",
   "column_break_3",
-  "healthcare_service",
-  "healthcare_service_template",
+  "item_code",
   "medical_code_standard",
   "medical_code",
-  "item_code",
-  "item_group",
   "coverage_deatils_section",
   "mode_of_approval",
   "coverage",
@@ -28,24 +27,6 @@
   "insurance_coverage_plan"
  ],
  "fields": [
-  {
-   "depends_on": "eval:doc.coverage_based_on==='Service'",
-   "fieldname": "healthcare_service",
-   "fieldtype": "Link",
-   "label": "Healthcare Service",
-   "mandatory_depends_on": "eval:doc.coverage_based_on==='Service'",
-   "options": "DocType",
-   "search_index": 1
-  },
-  {
-   "depends_on": "eval:doc.coverage_based_on ==='Service'",
-   "fieldname": "healthcare_service_template",
-   "fieldtype": "Dynamic Link",
-   "label": "Healthcare Service Template",
-   "mandatory_depends_on": "eval:doc.coverage_based_on==='Service'",
-   "options": "healthcare_service",
-   "search_index": 1
-  },
   {
    "fieldname": "column_break_3",
    "fieldtype": "Column Break"
@@ -107,15 +88,6 @@
    "search_index": 1
   },
   {
-   "depends_on": "eval:doc.coverage_based_on==='Item Group'",
-   "fieldname": "item_group",
-   "fieldtype": "Link",
-   "label": "Item Group",
-   "mandatory_depends_on": "eval:doc.coverage_based_on==='Item Group'",
-   "options": "Item Group",
-   "search_index": 1
-  },
-  {
    "fieldname": "title",
    "fieldtype": "Data",
    "hidden": 1,
@@ -166,18 +138,37 @@
    "label": "Insurance Coverage Plan"
   },
   {
-   "depends_on": "eval:doc.coverage_based_on==='Item'",
+   "depends_on": "eval:doc.coverage_based_on==='Item' || doc.item_code",
    "fieldname": "item_code",
    "fieldtype": "Link",
-   "label": "Item",
+   "label": "Item Code",
    "mandatory_depends_on": "eval:doc.coverage_based_on==='Item'",
    "options": "Item",
+   "read_only_depends_on": "eval:doc.coverage_based_on==='Service'",
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.coverage_based_on==='Service'",
+   "fieldname": "template_dt",
+   "fieldtype": "Link",
+   "label": "Healthcare Service",
+   "mandatory_depends_on": "eval:doc.coverage_based_on==='Service'",
+   "options": "DocType",
+   "search_index": 1
+  },
+  {
+   "depends_on": "eval:doc.coverage_based_on ==='Service'",
+   "fieldname": "template_dn",
+   "fieldtype": "Dynamic Link",
+   "label": "Healthcare Service Template",
+   "mandatory_depends_on": "eval:doc.coverage_based_on==='Service'",
+   "options": "template_dt",
    "search_index": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-06-27 21:46:39.112146",
+ "modified": "2021-06-28 09:11:27.209329",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Service Insurance Coverage",
