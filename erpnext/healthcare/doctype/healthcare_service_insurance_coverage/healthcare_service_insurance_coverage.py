@@ -13,7 +13,7 @@ class CoverageOverlapError(frappe.ValidationError): pass
 class HealthcareServiceInsuranceCoverage(Document):
 	def validate(self):
 		if self.coverage_based_on == 'Service':
-			self.set_service_details()
+			self.set_service_item()
 
 		if self.is_active:
 			self.validate_coverage_percentages()
@@ -49,11 +49,10 @@ class HealthcareServiceInsuranceCoverage(Document):
 		elif not self.valid_from and self.valid_till:
 			conditions += """ and (valid_from <= {valid_till} or valid_till = {valid_till}""".format(valid_till=frappe.db.escape(self.valid_till))
 
+		conditions += """ and ifnull(item_code, '') = {item_code}""".format(item_code=frappe.db.escape(self.item_code))
 
 		conditions += """ and ifnull(template_dt, '') = {dt} and ifnull(template_dn, '') = {dn} """.format(
 			dt=frappe.db.escape(self.template_dt), dn=frappe.db.escape(self.template_dn))
-
-		conditions += """ and ifnull(item_code, '') = {item_code}""".format(item_code=frappe.db.escape(self.item_code))
 
 		overlap = frappe.db.sql('''
 			SELECT name
@@ -65,7 +64,7 @@ class HealthcareServiceInsuranceCoverage(Document):
 			frappe.throw(_('Coverage overlaps with {}').format(get_link_to_form(self.doctype, overlap[0].name)),
 				CoverageOverlapError, title=_('Not Allowed'))
 
-	def set_service_details(self):
+	def set_service_item(self):
 		if self.template_dn == 'Therapy Plan Template':
 			self.item_code = frappe.db.get_value(self.template_dn, self.template_dt, 'linked_item')
 		elif self.template_dn != 'Appointment Type':
@@ -89,7 +88,7 @@ def get_insurance_coverage(item_code, template_dt=None, template_dn=None, on_dat
 
 	conditions += """ and ( (ifnull(item_code, '') = {item_code})""".format(item_code=frappe.db.escape(item_code or ''))
 
-	conditions += """ or (ifnull(template_dt, '') = {dt} and ifnull(template_dn, '') = {dn}) ) """.format(
+	conditions += """ or (ifnull(template_dt, '') = {dt} and ifnull(template_dn, '') = {dn}) )""".format(
 			dt=frappe.db.escape(template_dt), dn=frappe.db.escape(template_dn))
 
 	coverage = frappe.db.sql('''

@@ -396,16 +396,17 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 					'rate': claim_details.price_list_rate,
 					'insurance_claim_coverage': claim_details.coverage,
 					'discount_percentage':claim_details.discount,
-					'qty': service_order.quantity if service_order.template_dt == 'Medication' else 1,
+					'qty': service_order.quantity or 1 if (service_order.quantity or 1) >= claim_details.qty else claim_details.qty,
 					'claim_qty': claim_details.qty
 				})
-			else:
-				orders_to_invoice.append({
-					'reference_type': 'Healthcare Service Order',
-					'reference_name': service_order.name,
-					'service': item,
-					'qty': service_order.quantity if service_order.template_dt == 'Medication' else 1,
-				})
+				# if (service_order.quantity or 1) > claim_details.qty:
+
+			orders_to_invoice.append({
+				'reference_type': 'Healthcare Service Order',
+				'reference_name': service_order.name,
+				'service': item,
+				'qty': service_order.quantity if service_order.template_dt == 'Medication' else 1,
+			})
 
 	return orders_to_invoice
 
@@ -519,10 +520,8 @@ def manage_invoice_submit_cancel(doc, method):
 					set_invoiced(item, method, doc.name)
 
 	if any(item.get('insurance_claim') for item in doc.items):
-		# from erpnext.healthcare.doctype.healthcare_insurance_claim.healthcare_insurance_claim import update_insurance_claim
-		# update_insurance_claim(item.insurance_claim, item.qty, method)
 		if method == 'on_submit':
-			post_insurance_transfer_journal_entry(doc)
+			post_transfer_journal_entry_and_update_claim(doc)
 		else:
 			cancel_insurance_transfer_journal_entry(doc)
 
@@ -532,59 +531,72 @@ def manage_invoice_submit_cancel(doc, method):
 
 
 def cancel_insurance_transfer_journal_entry(sales_invoice):
-	pass
+	for item in sales_invoice.items:
+		pass
 
-def post_insurance_transfer_journal_entry(sales_invoice):
+def post_transfer_journal_entry_and_update_claim(sales_invoice):
 	'''
-	1 - Transfer Patient balance against Insurance Company by posting a Journal Entry
+	1 - Transfer Patient balance per claim
 	2 - Update Insurance Claim Detail
 	'''
+
 	jv_accounts = []
-
 	for item in sales_invoice.items:
-		if item.get('insurance_claim'):
-			from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import get_insurance_party_details
+		from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import get_insurance_party_details
 
-			insurance_claim = frappe.get_doc('Healthcare Insurance Claim', item.get('insurance_claim'))
-			insurance_company_details = get_insurance_party_details(insurance_claim.insurance_company, sales_invoice.company)
+		insurance_company_details = get_insurance_party_details(item.insurance_company, sales_invoice.company)
 
-			if not insurance_company_details or not insurance_company_details.get('receivable_account') or not insurance_company_details.get('party'):
-				frappe.throw(_('Receivable Account not configured for Insurance Company').format(insurance_claim.insurance_company))
+		if not insurance_company_details or not insurance_company_details.get('receivable_account') or not insurance_company_details.get('party'):
+			frappe.throw(_('Receivable Account not configured for Insurance Company').format(item.insurance_company))
 
-			jv_accounts.append({
-				'account': sales_invoice.debit_to,
-				'credit_in_account_currency': item.insurance_claim_amount,
-				'party_type': 'Customer',
-				'party': sales_invoice.customer,
-				'reference_type': 'Sales Invoice',
-				'reference_name': sales_invoice.name
+		jv_accounts.append({
+			'account': sales_invoice.debit_to,
+			'credit_in_account_currency': item.insurance_claim_amount,
+			'party_type': 'Customer',
+			'party': sales_invoice.customer,
+			'reference_type': 'Sales Invoice',
+			'reference_name': sales_invoice.name
+		})
+
+		jv_accounts.append({
+			'account': insurance_company_details.get('receivable_account'),
+			'debit_in_account_currency': item.insurance_claim_amount,
+			'party_type': 'Customer',
+			'party': insurance_company_details.get('party')
+		})
+
+		# Post Journal Entry
+		if len(jv_accounts) > 0:
+			journal_entry = frappe.new_doc('Journal Entry')
+			journal_entry.company = sales_invoice.company
+			journal_entry.posting_date = sales_invoice.posting_date
+
+			for account in jv_accounts:
+				journal_entry.append('accounts', account)
+
+			journal_entry.flags.ignore_permissions = True
+			journal_entry.flags.ignore_mandatory = True
+			journal_entry.submit()
+
+		# Update Insurance Claim
+		if journal_entry:
+			claim = frappe.get_doc('Healthcare Insurance Claim', item.insurance_claim)
+
+			claim.append('insurance_claim_details', {
+				'sales_invoice': sales_invoice.name,
+				'journal_entry': journal_entry.name,
+				'invoice_qty': item.qty,
+				'invoice_amount': item.amount,
+				'claim_amount': item.insurance_claim_amount,
+				'discount_amount': item.discount_amount,
+				'sales_invoice_item': item.name
 			})
-
-			jv_accounts.append({
-				'account': insurance_company_details.get('receivable_account'),
-				'debit_in_account_currency': item.insurance_claim_amount,
-				'party_type': 'Customer',
-				'party': insurance_company_details.get('party')
-			})
-
-			insurance_claim.set_invoice_details(item.qty, item.insurance_claim_amount)
-
-	if len(jv_accounts) > 0:
-		journal_entry = frappe.new_doc('Journal Entry')
-		journal_entry.company = sales_invoice.company
-		journal_entry.posting_date = sales_invoice.posting_date
-
-		for account in jv_accounts:
-			journal_entry.append('accounts', account)
-
-		journal_entry.flags.ignore_permissions = True
-		journal_entry.flags.ignore_mandatory = True
-		journal_entry.save()
+			claim.save(ignore_permissions=True)
 
 
 def set_invoiced(item, method, ref_invoice=None):
 	invoiced = False
-	if method=='on_submit':
+	if method == 'on_submit':
 		validate_invoiced_on_submit(item)
 		invoiced = True
 

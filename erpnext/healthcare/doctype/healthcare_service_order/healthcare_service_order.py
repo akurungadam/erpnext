@@ -26,6 +26,7 @@ class HealthcareServiceOrder(Document):
 	def before_submit(self):
 		if self.status not in ['Active', 'On Hold', 'Unknown']:
 			self.status = 'Active'
+
 	def before_insert(self):
 		self.status = 'Draft'
 
