@@ -400,13 +400,13 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 					'claim_qty': claim_details.qty
 				})
 				# if (service_order.quantity or 1) > claim_details.qty:
-
-			orders_to_invoice.append({
-				'reference_type': 'Healthcare Service Order',
-				'reference_name': service_order.name,
-				'service': item,
-				'qty': service_order.quantity if service_order.template_dt == 'Medication' else 1,
-			})
+			else:
+				orders_to_invoice.append({
+					'reference_type': 'Healthcare Service Order',
+					'reference_name': service_order.name,
+					'service': item,
+					'qty': service_order.quantity if service_order.template_dt == 'Medication' else 1,
+				})
 
 	return orders_to_invoice
 
@@ -523,32 +523,37 @@ def manage_invoice_submit_cancel(doc, method):
 		if method == 'on_submit':
 			post_transfer_journal_entry_and_update_claim(doc)
 		else:
-			cancel_insurance_transfer_journal_entry(doc)
+			cancel_transfer_journal_entry_and_update_claim(doc)
 
 	if method=='on_submit' and frappe.db.get_single_value('Healthcare Settings', 'create_lab_test_on_si_submit'):
 		from erpnext.healthcare.doctype.lab_test.lab_test import create_multiple
 		create_multiple('Sales Invoice', doc.name)
 
 
-def cancel_insurance_transfer_journal_entry(sales_invoice):
+def cancel_transfer_journal_entry_and_update_claim(sales_invoice):
 	for item in sales_invoice.items:
 		pass
 
 def post_transfer_journal_entry_and_update_claim(sales_invoice):
 	'''
-	1 - Transfer Patient balance per claim
+	1 - Journal Entry to Transfer Patient balance or each claim
 	2 - Update Insurance Claim Detail
+	TODO: Posting Journal Entries based on Insurance Company will reduce number of journal entries, but cannot allow claim cancel after invoice. Fix based on feedback
 	'''
 
-	jv_accounts = []
 	for item in sales_invoice.items:
-		from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import get_insurance_party_details
+		jv_accounts = []
+		if not item.insurance_claim:
+			continue
 
+		from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import get_insurance_party_details
 		insurance_company_details = get_insurance_party_details(item.insurance_company, sales_invoice.company)
 
 		if not insurance_company_details or not insurance_company_details.get('receivable_account') or not insurance_company_details.get('party'):
 			frappe.throw(_('Receivable Account not configured for Insurance Company').format(item.insurance_company))
 
+
+		# Post Journal Entry
 		jv_accounts.append({
 			'account': sales_invoice.debit_to,
 			'credit_in_account_currency': item.insurance_claim_amount,
@@ -565,7 +570,6 @@ def post_transfer_journal_entry_and_update_claim(sales_invoice):
 			'party': insurance_company_details.get('party')
 		})
 
-		# Post Journal Entry
 		if len(jv_accounts) > 0:
 			journal_entry = frappe.new_doc('Journal Entry')
 			journal_entry.company = sales_invoice.company
@@ -645,8 +649,8 @@ def validate_invoiced_on_submit(item):
 	else:
 		is_invoiced = frappe.db.get_value(item.reference_dt, item.reference_dn, 'invoiced')
 	if is_invoiced:
-		frappe.throw(_('The item referenced by {0} - {1} is already invoiced').format(
-			item.reference_dt, item.reference_dn))
+		frappe.throw(_('Row #{} Item referenced by {} - {} is already invoiced').format(
+			item.idx, item.reference_dt, item.reference_dn))
 
 
 def manage_prescriptions(invoiced, ref_dt, ref_dn, dt, created_check_field):

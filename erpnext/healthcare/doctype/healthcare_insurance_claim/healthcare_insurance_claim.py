@@ -49,13 +49,17 @@ class HealthcareInsuranceClaim(Document):
 			frappe.throw('Insurance Claim cannot be Approved without a valid Coverage Amount')
 
 	def validate_invoice_details(self):
-		if self.invoiced_qty > self.qty or self.invoiced_amount > self.patient_payable:
-			frappe.msgprint(_('Insurance Claim Detail Invoiced Quantity / Invoiced Amount cannot be more than Approved Quantity {} or Amount {}'),format(
-				self.invoiced_qty, self.invoiced_amount))
+		print('validate claim: ', self.total_invoice_qty, self.total_invoice_amount)
+		if self.total_invoice_qty > self.qty or self.total_invoice_amount > self.patient_payable:
+			frappe.throw(_('Insurance Claim Detail Invoiced Quantity / Invoiced Amount cannot be more than Approved Quantity {} or Amount {}'),format(
+				self.invoiced_qty, self.invoiced_amount), title=_('Not Allowed'))
 
 	def before_submit(self):
 		if self.status not in ['Approved', 'Rejected']:
 			frappe.throw(_('Insurance Claims can only be submitted with Status <b>Approved</b> or <b>Rejected</b>'), title=_('Not Allowed'))
+
+		if self.billing_status != 'Pending':
+			frappe.throw(_('Insurance Claims can only be submitted with Billing Status <b>Pending</b>'), title=_('Not Allowed'))
 
 	def on_submit(self):
 		if not self.flags.silent:
@@ -66,14 +70,24 @@ class HealthcareInsuranceClaim(Document):
 		self.flags.silent = False
 
 	def on_update_after_submit(self):
-		self.invoiced_qty = sum(d.get('invoice_qty') or 0 for d in self.insurance_claim_details)
-		self.invoiced_amount = sum(d.get('claim_amount') or 0 for d in self.insurance_claim_details)
+		print(self.insurance_claim_details)
+		total_invoice_qty = sum(detail.get('invoice_qty') or 0 for detail in self.insurance_claim_details)
+		total_invoice_amount = sum(detail.get('invoice_amount') or 0 for detail in self.insurance_claim_details)
+		billing_status = 'Partially Invoiced' if total_invoice_qty < self.qty else 'Invoiced'
+
+		self.db_set({
+			'invoiced_qty': total_invoice_qty,
+			'invoiced_amount': total_invoice_amount,
+			'billing_status': billing_status
+		})
 
 	def before_cancel(self):
-		not_allowed = ['Invoiced', 'Partially Invoiced' ,'Paid', 'Rejected', 'Payment Rejected']
-		if self.billing_status in not_allowed:
+		not_allowed = ['Partially Paid', 'Paid']
+		if self.billing_status in ['Partially Paid', 'Paid']:
 			frappe.throw(_('Cannot cancel Insurance Claim with Claim Status {}').format(', '.join(not_allowed)),
 			title=_('Not Allowed'))
+		else:
+			pass
 
 		# unlink from linked doctype (Appointment / Encounter, HSO, IP Record)
 		doc_link = self.get_service_doctype_link()
@@ -170,26 +184,21 @@ class HealthcareInsuranceClaim(Document):
 		self.coverage_amount = 0
 		self.patient_payable = 0
 
-	def get_service_doctype_link(self):
-		'''
-		Returns the linked service dt, dn
-		'''
-		if self.template_dt == 'Appointment Type':
-			link_name = frappe.db.exists('Patient Appointment', {'insurance_claim': self.name})
-			if link_name:
-				return {'link_dt': 'Patient Appointment', 'link_dn': link_name}
 
-			link_name = frappe.db.exists('Patient Encounter', {'insurance_claim': self.name})
-			if link_name:
-				return {'link_dt': 'Patient Encounter', 'link_dn': link_name}
+def get_service_doctype_link(claim):
+	'''
+	Returns the service dt, dn linked to this claim
+	'''
+	if self.template_dt == 'Healthcare Service Unit Type':
+		link_name = frappe.db.exists('Inpatient Record', {'insurance_claim': self.name})
+		return {'link_dt': 'Inpatient Record', 'link_dn': link_name}
 
-		elif self.template_dt == 'Healthcare Service Unit Type':
-			link_name = frappe.db.exists('Inpatient Record', {'insurance_claim': self.name})
-			return {'link_dt': 'Inpatient Record', 'link_dn': link_name}
+	else:
+		link_name = frappe.db.exists(self.template_dt, {'insurance_claim': self.name})
+		if link_name:
+			return {'link_dt': self.template_dt, 'link_dn': link_name}
 
-		else:
-			link_name = frappe.db.exists('Healthcare Service Order', {'insurance_claim': self.name})
-			return {'link_dt': 'Healthcare Service Order', 'link_dn': link_name}
+	return None
 
 
 def make_insurance_claim(patient, policy, company, template_dt=None, template_dn=None, item_code=None, qty=1):
