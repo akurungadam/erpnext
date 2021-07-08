@@ -5,7 +5,7 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-from frappe.utils import getdate, get_link_to_form, getdate
+from frappe.utils import getdate, get_link_to_form
 from frappe.model.document import Document
 
 class CoverageOverlapError(frappe.ValidationError): pass
@@ -23,7 +23,7 @@ class HealthcareServiceInsuranceCoverage(Document):
 		self.set_title()
 
 	def validate_coverage_percentages(self):
-		if self.coverage <= 0 or self.discount <= 0:
+		if self.coverage <= 0 or self.discount < 0: # discount can be zero
 			frappe.throw(_('Invalid Coverage / Discount percentage'))
 
 	def validate_dates(self):
@@ -65,11 +65,14 @@ class HealthcareServiceInsuranceCoverage(Document):
 				CoverageOverlapError, title=_('Not Allowed'))
 
 	def set_service_item(self):
-		if self.template_dn == 'Therapy Plan Template':
-			self.item_code = frappe.db.get_value(self.template_dn, self.template_dt, 'linked_item')
-		elif self.template_dn != 'Appointment Type':
-			# all other services except appointment type as item_code will be dynamic based on department
-			self.item_code = frappe.db.get_value(self.template_dn, self.template_dt, 'item')
+		'''
+		Set item code for all services except appointment type
+		for appointment type, item code is based on department
+		'''
+		if self.template_dt == 'Therapy Plan Template':
+			self.item_code = frappe.db.get_value(self.template_dt, self.template_dn, 'linked_item')
+		elif self.template_dt != 'Appointment Type':
+			self.item_code = frappe.db.get_value(self.template_dt, self.template_dn, 'item')
 
 	def set_title(self):
 		if self.coverage_based_on == 'Service':

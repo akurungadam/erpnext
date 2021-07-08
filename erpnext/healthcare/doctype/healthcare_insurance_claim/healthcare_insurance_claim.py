@@ -18,14 +18,15 @@ class HealthcareInsuranceClaim(Document):
 		self.set_and_validate_item_code()
 
 		if self.status in ['Draft', 'Approved']:
-			if not self.set_insurance_coverage():
-				self.status = 'Draft'
+			if not self.set_insurance_coverage() and self.mode_of_approval == 'Automatic':
+				# raise error only if mode_of_approval is automatic
 				raise CoverageNotFoundError
 
-			if self.set_insurance_price_list_rate() and self.set_insurance_claim_details():
-				self.status = 'Approved' if self.mode_of_approval == 'Automatic' else 'Draft'
-			else:
-				self.status = 'Draft'
+		if self.set_insurance_price_list_rate() and self.set_insurance_claim_details():
+			self.status = 'Approved' if self.mode_of_approval == 'Automatic' else self.status
+		else:
+			# Approve only if status manually set "Approved"
+			self.status = 'Draft' if self.mode_of_approval == 'Automatic' else self.status
 
 		self.validate_status()
 		self.validate_invoice_details()
@@ -45,21 +46,17 @@ class HealthcareInsuranceClaim(Document):
 				frappe.bold(self.insurance_subscription), self.posting_date), title=_('Invalid Insurance Policy'))
 
 	def validate_status(self):
-		if self.status == 'Approved' and (not self.service_coverage or self.coverage_amount <= 0):
-			frappe.throw('Insurance Claim cannot be Approved without a valid Coverage Amount')
+		if self.status == 'Approved' and self.claim_amount < 0 or self.patient_payable < 0:
+			frappe.throw(_('<b>Claim Amount</b> and <b>Patient Payable</b> should be greater than 0'), title=_('Not Allowed'))
 
 	def validate_invoice_details(self):
-		print('validate claim: ', self.total_invoice_qty, self.total_invoice_amount)
-		if self.total_invoice_qty > self.qty or self.total_invoice_amount > self.patient_payable:
-			frappe.throw(_('Insurance Claim Detail Invoiced Quantity / Invoiced Amount cannot be more than Approved Quantity {} or Amount {}'),format(
-				self.invoiced_qty, self.invoiced_amount), title=_('Not Allowed'))
+		if self.invoiced_qty > self.qty or self.invoiced_claim_amount > self.claim_amount:
+			frappe.throw(_('Invoiced Quantity and Invoiced Amount cannot be more than Claim Quantity {} and Claim Amount {}').format(
+				self.invoiced_qty, self.status), title=_('Not Allowed'))
 
 	def before_submit(self):
 		if self.status not in ['Approved', 'Rejected']:
 			frappe.throw(_('Insurance Claims can only be submitted with Status <b>Approved</b> or <b>Rejected</b>'), title=_('Not Allowed'))
-
-		if self.billing_status != 'Pending':
-			frappe.throw(_('Insurance Claims can only be submitted with Billing Status <b>Pending</b>'), title=_('Not Allowed'))
 
 	def on_submit(self):
 		if not self.flags.silent:
@@ -70,26 +67,24 @@ class HealthcareInsuranceClaim(Document):
 		self.flags.silent = False
 
 	def on_update_after_submit(self):
-		print(self.insurance_claim_details)
-		total_invoice_qty = sum(detail.get('invoice_qty') or 0 for detail in self.insurance_claim_details)
-		total_invoice_amount = sum(detail.get('invoice_amount') or 0 for detail in self.insurance_claim_details)
-		billing_status = 'Partially Invoiced' if total_invoice_qty < self.qty else 'Invoiced'
+		invoiced_qty = sum(detail.get('invoice_qty') or 0 for detail in self.insurance_claim_details)
+		invoiced_claim_amount = sum(detail.get('invoice_amount') or 0 for detail in self.insurance_claim_details)
+		status = 'Partially Invoiced' if invoiced_qty < self.qty else 'Invoiced'
 
 		self.db_set({
-			'invoiced_qty': total_invoice_qty,
-			'invoiced_amount': total_invoice_amount,
-			'billing_status': billing_status
+			'invoiced_qty': invoiced_qty,
+			'invoiced_claim_amount': invoiced_claim_amount,
+			'status': status
 		})
+		# TODO: validate qty?
 
 	def before_cancel(self):
 		not_allowed = ['Partially Paid', 'Paid']
-		if self.billing_status in ['Partially Paid', 'Paid']:
-			frappe.throw(_('Cannot cancel Insurance Claim with Claim Status {}').format(', '.join(not_allowed)),
+		if self.status in ['Invoiced', 'Partially Paid', 'Paid', 'Payment Rejected']:
+			frappe.throw(_('Cannot cancel Insurance Claim with Status {}').format(', '.join(not_allowed)),
 			title=_('Not Allowed'))
-		else:
-			pass
 
-		# unlink from linked doctype (Appointment / Encounter, HSO, IP Record)
+		# Unlink from linked doctype (Appointment / Encounter, HSO, IP Record)
 		doc_link = self.get_service_doctype_link()
 		if doc_link and doc_link.get('link_dt') and doc_link.get('link_dn'):
 			frappe.db.set_value(doc_link.get('link_dt'), doc_link.get('link_dn'), {'insurance_claim': '', 'claim_status': ''})
@@ -103,11 +98,11 @@ class HealthcareInsuranceClaim(Document):
 
 	def set_and_validate_item_code(self):
 		# reset item_code only if service template selected
-		if self.template_dt and self.template_dn and self.template_dt not in ['Appointment Type']:
+		if self.template_dt and self.template_dn and self.template_dt and frappe.get_meta(self.template_dt).has_field('item'):
 			self.item_code = frappe.db.get_value(self.template_dt, self.template_dn, 'item')
 
 		if not self.item_code:
-			frappe.throw(_('Service Template or Item is required to create Insurance Claim'), title=_('Missing Mandatory Fields'))
+			frappe.throw(_('Invalid Service Template, Item is required to create Insurance Claim'), title=_('Missing Mandatory Fields'))
 
 	def set_insurance_coverage(self):
 		'''
@@ -122,9 +117,8 @@ class HealthcareInsuranceClaim(Document):
 			coverage_plan=self.insurance_coverage_plan)
 
 		if not coverage_detail:
-			self.reset_claim_details()
 			frappe.msgprint(_('Insurance Coverage not found for {}.').format(
-				self.item_code), alert=True, indicator='warning')
+				self.item_code), alert=True, indicator='error')
 			return False
 		
 		self.service_coverage = coverage_detail.get('name')
@@ -161,13 +155,19 @@ class HealthcareInsuranceClaim(Document):
 		'''
 		if self.discount and self.discount > 0:
 			self.discount_amount = (flt(self.price_list_rate) * flt(self.discount) * 0.01) * flt(self.qty)
+		else:
+			self.discount_amount = 0
 
-		self.amount = (flt(self.price_list_rate) * flt(self.qty)) - flt(self.discount_amount) if self.discount_amount else 0
+		self.amount = (flt(self.price_list_rate) * flt(self.qty)) - flt(self.discount_amount)
+
 		if self.coverage and self.coverage > 0:
-			self.coverage_amount = flt(self.amount) * flt(self.coverage) * 0.01
-			self.patient_payable = flt(self.amount) - flt(self.coverage_amount)
+			self.claim_amount = flt(self.amount) * flt(self.coverage) * 0.01
+		else:
+			self.claim_amount = 0
 
-		if self.coverage_amount <= 0:
+		self.patient_payable = flt(self.amount) - flt(self.claim_amount)
+
+		if self.claim_amount <= 0:
 			frappe.msgprint(_('Error calculating Coverage for Insurance Claim {}. \
 				Please verify Coverage for Item and then try saving Insurance Claim again').format(self.name),
 				alert=True, indicator='error')
@@ -175,30 +175,20 @@ class HealthcareInsuranceClaim(Document):
 
 		return True
 
-	def reset_claim_details(self):
-		self.service_coverage = ''
-		self.mode_of_approval = 'Manual'
-		self.coverage = 0
-		self.discount = 0
-		self.amount = 0
-		self.coverage_amount = 0
-		self.patient_payable = 0
+	def get_service_doctype_link(self):
+		'''
+		Returns the service dt, dn linked to this claim
+		'''
+		if self.template_dt == 'Healthcare Service Unit Type':
+			link_name = frappe.db.exists('Inpatient Record', {'insurance_claim': self.name})
+			return {'link_dt': 'Inpatient Record', 'link_dn': link_name}
 
+		else: # TODO: fix
+			link_name = frappe.db.exists(self.template_dt, {'insurance_claim': self.name})
+			if link_name:
+				return {'link_dt': self.template_dt, 'link_dn': link_name}
 
-def get_service_doctype_link(claim):
-	'''
-	Returns the service dt, dn linked to this claim
-	'''
-	if self.template_dt == 'Healthcare Service Unit Type':
-		link_name = frappe.db.exists('Inpatient Record', {'insurance_claim': self.name})
-		return {'link_dt': 'Inpatient Record', 'link_dn': link_name}
-
-	else:
-		link_name = frappe.db.exists(self.template_dt, {'insurance_claim': self.name})
-		if link_name:
-			return {'link_dt': self.template_dt, 'link_dn': link_name}
-
-	return None
+		return None
 
 
 def make_insurance_claim(patient, policy, company, template_dt=None, template_dn=None, item_code=None, qty=1):
@@ -212,7 +202,7 @@ def make_insurance_claim(patient, policy, company, template_dt=None, template_dn
 
 	claim = frappe.new_doc('Healthcare Insurance Claim')
 	claim.status = 'Draft'
-	claim.billing_status = 'Pending'
+	claim.mode_of_approval = 'Automatic'
 	claim.patient = patient
 	claim.company = company
 	claim.posting_date = getdate()
@@ -245,11 +235,11 @@ def get_insurance_price_list_rate(item_code, policy, company=None):
 	Return price_list_rate and price_list based on Patient's Insurance Policy
 	'''
 	#TODO: fix 6 db fetch
-	insurance_price_lists = get_insurance_price_lists(policy, company) #TODO: 2 db fetch
+	insurance_price_lists = get_insurance_price_lists(policy, company)
 
 	if insurance_price_lists:
 		if insurance_price_lists.get('plan_price_list'):
-			price_list_rate = get_item_price_list_rate(insurance_price_lists.get('plan_price_list'), item_code) #TODO: 2 db fetch
+			price_list_rate = get_item_price_list_rate(insurance_price_lists.get('plan_price_list'), item_code)
 			if price_list_rate:
 				return {'price_list': insurance_price_lists.get('plan_price_list'), 'price_list_rate': price_list_rate}
 
@@ -274,7 +264,7 @@ def get_item_price_list_rate(price_list, item_code):
 
 
 @frappe.whitelist()
-def create_insurance_coverage(doc): #TODO: fix fieldnames
+def create_insurance_coverage(doc):
 	from six import string_types
 	import json
 
@@ -282,26 +272,16 @@ def create_insurance_coverage(doc): #TODO: fix fieldnames
 		doc = json.loads(doc)
 		doc = frappe._dict(doc)
 
-	coverage_plan = frappe.db.get_value('Healthcare Insurance Subscription', doc.insurance_subscription, 'healthcare_insurance_coverage_plan')
+	coverage = frappe.new_doc('Healthcare Service Insurance Coverage')
+	coverage.coverage_based_on = 'Service' if doc.template_dt else 'Item'
+	coverage.insurance_coverage_plan = doc.insurance_coverage_plan
+	coverage.template_dt = doc.template_dt
+	coverage.template_dn = doc.template_dn
+	coverage.item = doc.item_code
 
-	coverage_service = frappe.new_doc('Healthcare Service Insurance Coverage')
-	coverage_service.coverage_based_on = doc.coverage_based_on
-	coverage_service.healthcare_insurance_coverage_plan = coverage_plan
-	coverage_service.insurance_coverage_plan_name = frappe.db.get_value('Healthcare Insurance Coverage Plan', coverage_plan, 'coverage_plan_name')
-
-
-	if doc.coverage_based_on == 'Service':
-		coverage_service.healthcare_service = doc.template_type
-		coverage_service.healthcare_service_template = doc.template_dn
-
-	elif doc.coverage_based_on == 'Medical Code':
-		coverage_service.medical_code = doc.medical_code
-
-	elif doc.coverage_based_on == 'Item':
-		coverage_service.item = doc.item_code
-
-	coverage_service.coverage = doc.coverage
-	coverage_service.discount = doc.discount
-	coverage_service.start_date = doc.posting_date or getdate()
-	coverage_service.end_date = doc.approval_validity_end_date
-	return coverage_service
+	coverage.mode_of_approval = doc.mode_of_approval
+	coverage.coverage = doc.coverage
+	coverage.discount = doc.discount
+	coverage.start_date = doc.posting_date or getdate()
+	# coverage.end_date = doc.approval_validity_end_date # leave blank as this is dependent on policy end date
+	return coverage

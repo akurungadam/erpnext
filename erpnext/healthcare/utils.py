@@ -8,7 +8,7 @@ import frappe
 import json
 from frappe import _
 from frappe.utils.formatters import format_value
-from frappe.utils import time_diff_in_hours, rounded, flt, get_link_to_form
+from frappe.utils import time_diff_in_hours, rounded, flt, get_link_to_form, getdate
 from six import string_types
 from erpnext.healthcare.doctype.healthcare_settings.healthcare_settings import get_income_account
 from erpnext.healthcare.doctype.fee_validity.fee_validity import create_fee_validity
@@ -67,22 +67,24 @@ def get_appointments_to_invoice(patient, company):
 			claim_details = None
 			if appointment.insurance_claim:
 				claim_details = frappe.get_cached_value('Healthcare Insurance Claim', appointment.insurance_claim,
-					['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number'], as_dict=True)
+					['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number', 'claim_validity_end_date', 'company', 'insurance_company'],
+					as_dict=True)
 
-			if claim_details and claim_details.status == 'Approved':
-				appointments_to_invoice.append({
-					'reference_type': 'Patient Appointment',
-					'reference_name': appointment.name,
-					'income_account': income_account,
-					'patient_insurance_policy': claim_details.policy_number,
-					'insurance_claim': appointment.insurance_claim,
-					'insurance_company': appointment.insurance_company,
-					'service': claim_details.item_code,
-					'rate': claim_details.price_list_rate,
-					'insurance_claim_coverage': claim_details.coverage,
-					'discount_percentage': claim_details.discount,
-					'claim_qty': claim_details.qty
-				})
+			if claim_details and claim_details.status in ['Approved', 'Partially Invoiced'] \
+				and getdate() <= claim_details.claim_validity_end_date and company == claim_details.company:
+					appointments_to_invoice.append({
+						'reference_type': 'Patient Appointment',
+						'reference_name': appointment.name,
+						'income_account': income_account,
+						'insurance_claim': appointment.insurance_claim,
+						'patient_insurance_policy': claim_details.policy_number,
+						'insurance_company': claim_details.insurance_company,
+						'service': claim_details.item_code,
+						'rate': claim_details.price_list_rate,
+						'insurance_claim_coverage': claim_details.coverage,
+						'discount_percentage': claim_details.discount,
+						'claim_qty': claim_details.qty
+					})
 			else:
 				billing_details = get_service_item_and_practitioner_charge(appointment)
 				appointments_to_invoice.append({
@@ -118,16 +120,18 @@ def get_encounters_to_invoice(patient, company):
 			claim_details = None
 			if encounter.insurance_claim:
 				claim_details = frappe.get_cached_value('Healthcare Insurance Claim', encounter.insurance_claim,
-					['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number'], as_dict=True)
+					['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number', 'claim_validity_end_date', 'company', 'insurance_company'],
+					as_dict=True)
 
-			if claim_details and claim_details.status == 'Approved':
+			if claim_details and claim_details.status in ['Approved', 'Partially Invoiced'] \
+				and getdate() <= claim_details.claim_validity_end_date and company == claim_details.company:
 				encounters_to_invoice.append({
 					'reference_type': 'Patient Encounter',
 					'reference_name': encounter.name,
 					'income_account': income_account,
-					'patient_insurance_policy': claim_details.policy_number,
 					'insurance_claim': encounter.insurance_claim,
-					'insurance_company': encounter.insurance_company,
+					'patient_insurance_policy': claim_details.policy_number,
+					'insurance_company': claim_details.insurance_company,
 					'service': claim_details.item_code,
 					'rate': claim_details.price_list_rate,
 					'insurance_claim_coverage': claim_details.coverage,
@@ -161,15 +165,17 @@ def get_lab_tests_to_invoice(patient, company):
 			# claim_details = None
 			# if lab_test.insurance_claim:
 			# 	claim_details = frappe.get_cached_value('Healthcare Insurance Claim', lab_test.insurance_claim,
-			# 		['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number'], as_dict=True)
+			# 		['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number', 'claim_validity_end_date', 'company', 'insurance_company'],
+			# 		as_dict=True)
 
-			# if claim_details and claim_details.status == 'Approved':
+			# if claim_details and claim_details.status in ['Approved', 'Partially Invoiced'] \
+			# 	and getdate() <= claim_details.claim_validity_end_date and company == claim_details.company:
 			# 	lab_tests_to_invoice.append({
 			# 		'reference_type': 'Lab Test',
 			# 		'reference_name': lab_test.name,
-			# 		'patient_insurance_policy': claim_details.policy_number,
 			# 		'insurance_claim': lab_test.insurance_claim,
-			# 		'insurance_company': lab_test.insurance_company,
+			# 		'patient_insurance_policy': claim_details.policy_number,
+			# 		'insurance_company': claim_details.insurance_company,
 			# 		'service': claim_details.item_code,
 			# 		'rate': claim_details.price_list_rate,
 			# 		'insurance_claim_coverage': claim_details.coverage,
@@ -203,15 +209,17 @@ def get_clinical_procedures_to_invoice(patient, company):
 			# claim_details = None
 			# if procedure.insurance_claim:
 			# 	claim_details = frappe.get_cached_value('Healthcare Insurance Claim', procedure.insurance_claim,
-			# 		['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty'], 'policy_number', as_dict=True)
+			# 		['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number', 'claim_validity_end_date', 'company', 'insurance_company'],
+			# 		as_dict=True)
 
-			# if claim_details and claim_details.status == 'Approved':
+			# if claim_details and claim_details.status in ['Approved', 'Partially Invoiced'] \
+			# 	and getdate() <= claim_details.claim_validity_end_date and company == claim_details.company:
 			# 	clinical_procedures_to_invoice.append({
 			# 		'reference_type': 'Clinical Procedure',
 			# 		'reference_name': procedure.name,
-			# 		'patient_insurance_policy': claim_details.policy_number,
 			# 		'insurance_claim': procedure.insurance_claim,
-			# 		'insurance_company': procedure.insurance_company,
+			# 		'patient_insurance_policy': claim_details.policy_number,
+			# 		'insurance_company': claim_details.insurance_company,
 			# 		'service': claim_details.item_code,
 			# 		'rate': claim_details.price_list_rate,
 			# 		'insurance_claim_coverage': claim_details.coverage,
@@ -337,9 +345,11 @@ def get_therapy_sessions_to_invoice(patient, company):
 				# claim_details = None
 				# if therapy.insurance_claim:
 				# 	claim_details = frappe.get_cached_value('Healthcare Insurance Claim', therapy.insurance_claim,
-				# 		['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number'], as_dict=True)
+				# 		['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number', 'claim_validity_end_date', 'company', 'insurance_company'],
+				# 		as_dict=True)
 
-				# 	if claim_details and claim_details.status == 'Approved':
+				# 	if claim_details and claim_details.status in ['Approved', 'Partially Invoiced'] \
+				# 		and getdate() <= claim_details.claim_validity_end_date and company == claim_details.company:
 				# 		therapy_sessions_to_invoice.append({
 				# 			'reference_type': 'Therapy Session',
 				# 			'reference_name': therapy.name,
@@ -383,9 +393,9 @@ def get_healthcare_service_orders_to_invoice(patient, company):
 			claim_details = None
 			if service_order.insurance_claim:
 				claim_details = frappe.get_cached_value('Healthcare Insurance Claim', service_order.insurance_claim,
-					['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number'], as_dict=True)
+					['status', 'coverage', 'discount', 'price_list_rate', 'item_code', 'qty', 'policy_number', 'claim_validity_end_date'], as_dict=True)
 
-			if claim_details and claim_details.status == 'Approved':
+			if claim_details and claim_details.status in ['Approved', 'Partially Invoiced'] and getdate() <= claim_details.claim_validity_end_date:
 				orders_to_invoice.append({
 					'reference_type': 'Healthcare Service Order',
 					'reference_name': service_order.name,
