@@ -14,12 +14,16 @@ frappe.ui.form.on('Patient Appointment', {
 			frm.set_value('appointment_time', null);
 			frm.disable_save();
 		}
+		frappe.db.get_single_value('Healthcare Settings', 'automate_appointment_invoicing')
+			.then(automate_invoicing => {
+				frm.toggle_display('insurance_subscription', automate_invoicing === 0);
+			})
 	},
 
 	refresh: function(frm) {
-		frm.set_query('patient', function () {
+		frm.set_query('patient', function() {
 			return {
-				filters: {'status': 'Active'}
+				filters: { 'status': 'Active' }
 			};
 		});
 
@@ -51,6 +55,17 @@ frappe.ui.form.on('Patient Appointment', {
 			};
 		});
 
+		frm.set_query('service_order', function() {
+			return {
+				filters: {
+					'patient': frm.doc.patient,
+					'status': 'Active',
+					'docstatus': 1,
+					'template_dt': ['in', ['Clinical Procedure', 'Therapy Type']]
+				}
+			};
+		});
+
 		frm.trigger('set_therapy_type_filter');
 
 		if (frm.is_new()) {
@@ -64,7 +79,7 @@ frappe.ui.form.on('Patient Appointment', {
 				} else {
 					frappe.call({
 						method: 'erpnext.healthcare.doctype.patient_appointment.patient_appointment.check_payment_fields_reqd',
-						args: {'patient': frm.doc.patient},
+						args: { 'patient': frm.doc.patient },
 						callback: function(data) {
 							if (data.message == true) {
 								if (frm.doc.mode_of_payment && frm.doc.paid_amount) {
@@ -97,7 +112,7 @@ frappe.ui.form.on('Patient Appointment', {
 
 		if (frm.doc.patient) {
 			frm.add_custom_button(__('Patient History'), function() {
-				frappe.route_options = {'patient': frm.doc.patient};
+				frappe.route_options = { 'patient': frm.doc.patient };
 				frappe.set_route('patient_history');
 			}, __('View'));
 		}
@@ -111,14 +126,14 @@ frappe.ui.form.on('Patient Appointment', {
 			});
 
 			if (frm.doc.procedure_template) {
-				frm.add_custom_button(__('Clinical Procedure'), function(){
+				frm.add_custom_button(__('Clinical Procedure'), function() {
 					frappe.model.open_mapped_doc({
 						method: 'erpnext.healthcare.doctype.clinical_procedure.clinical_procedure.make_procedure',
 						frm: frm,
 					});
 				}, __('Create'));
 			} else if (frm.doc.therapy_type) {
-				frm.add_custom_button(__('Therapy Session'),function(){
+				frm.add_custom_button(__('Therapy Session'), function() {
 					frappe.model.open_mapped_doc({
 						method: 'erpnext.healthcare.doctype.therapy_session.therapy_session.create_therapy_session',
 						frm: frm,
@@ -156,7 +171,7 @@ frappe.ui.form.on('Patient Appointment', {
 					doctype: 'Patient',
 					name: frm.doc.patient
 				},
-				callback: function (data) {
+				callback: function(data) {
 					let age = null;
 					if (data.message.dob) {
 						age = calculate_age(data.message.dob);
@@ -173,7 +188,7 @@ frappe.ui.form.on('Patient Appointment', {
 	},
 
 	practitioner: function(frm) {
-		if (frm.doc.practitioner ) {
+		if (frm.doc.practitioner) {
 			frm.events.set_payment_details(frm);
 		}
 	},
@@ -194,8 +209,10 @@ frappe.ui.form.on('Patient Appointment', {
 					},
 					callback: function(data) {
 						if (data.message) {
-							frappe.model.set_value(frm.doctype, frm.docname, 'paid_amount', data.message.practitioner_charge);
-							frappe.model.set_value(frm.doctype, frm.docname, 'billing_item', data.message.service_item);
+							frm.set_value({
+								'paid_amount': data.message.practitioner_charge,
+								'billing_item': data.message.service_item
+							});
 						}
 					}
 				});
@@ -238,7 +255,7 @@ frappe.ui.form.on('Patient Appointment', {
 	toggle_payment_fields: function(frm) {
 		frappe.call({
 			method: 'erpnext.healthcare.doctype.patient_appointment.patient_appointment.check_payment_fields_reqd',
-			args: {'patient': frm.doc.patient},
+			args: { 'patient': frm.doc.patient },
 			callback: function(data) {
 				if (data.message.fee_validity) {
 					// if fee validity exists and automated appointment invoicing is enabled,
@@ -255,7 +272,7 @@ frappe.ui.form.on('Patient Appointment', {
 					frm.toggle_display('paid_amount', data.message ? 1 : 0);
 					frm.toggle_display('billing_item', data.message ? 1 : 0);
 					frm.toggle_reqd('mode_of_payment', data.message ? 1 : 0);
-					frm.toggle_reqd('paid_amount', data.message ? 1 :0);
+					frm.toggle_reqd('paid_amount', data.message ? 1 : 0);
 					frm.toggle_reqd('billing_item', data.message ? 1 : 0);
 				}
 			}
@@ -266,7 +283,7 @@ frappe.ui.form.on('Patient Appointment', {
 		if (frm.doc.patient) {
 			frappe.call({
 				method: "erpnext.healthcare.doctype.patient_appointment.patient_appointment.get_prescribed_therapies",
-				args: {patient: frm.doc.patient},
+				args: { patient: frm.doc.patient },
 				callback: function(r) {
 					if (r.message) {
 						show_therapy_types(frm, r.message);
@@ -303,13 +320,13 @@ let check_and_set_availability = function(frm) {
 		let d = new frappe.ui.Dialog({
 			title: __('Available slots'),
 			fields: [
-				{ fieldtype: 'Link', options: 'Medical Department', reqd: 1, fieldname: 'department', label: 'Medical Department'},
-				{ fieldtype: 'Column Break'},
-				{ fieldtype: 'Link', options: 'Healthcare Practitioner', reqd: 1, fieldname: 'practitioner', label: 'Healthcare Practitioner'},
-				{ fieldtype: 'Column Break'},
-				{ fieldtype: 'Date', reqd: 1, fieldname: 'appointment_date', label: 'Date'},
-				{ fieldtype: 'Section Break'},
-				{ fieldtype: 'HTML', fieldname: 'available_slots'}
+				{ fieldtype: 'Link', options: 'Medical Department', reqd: 1, fieldname: 'department', label: 'Medical Department' },
+				{ fieldtype: 'Column Break' },
+				{ fieldtype: 'Link', options: 'Healthcare Practitioner', reqd: 1, fieldname: 'practitioner', label: 'Healthcare Practitioner' },
+				{ fieldtype: 'Column Break' },
+				{ fieldtype: 'Date', reqd: 1, fieldname: 'appointment_date', label: 'Date' },
+				{ fieldtype: 'Section Break' },
+				{ fieldtype: 'HTML', fieldname: 'available_slots' }
 
 			],
 			primary_action_label: __('Book'),
@@ -396,14 +413,14 @@ let check_and_set_availability = function(frm) {
 								let start_str = slot.from_time;
 								let slot_start_time = moment(slot.from_time, 'HH:mm:ss');
 								let slot_to_time = moment(slot.to_time, 'HH:mm:ss');
-								let interval = (slot_to_time - slot_start_time)/60000 | 0;
+								let interval = (slot_to_time - slot_start_time) / 60000 | 0;
 								// iterate in all booked appointments, update the start time and duration
 								slot_details[i].appointments.forEach(function(booked) {
 									let booked_moment = moment(booked.appointment_time, 'HH:mm:ss');
 									let end_time = booked_moment.clone().add(booked.duration, 'minutes');
 									// Deal with 0 duration appointments
 									if (booked_moment.isSame(slot_start_time) || booked_moment.isBetween(slot_start_time, slot_to_time)) {
-										if(booked.duration == 0){
+										if (booked.duration == 0) {
 											disabled = 'disabled="disabled"';
 											return false;
 										}
@@ -461,7 +478,7 @@ let get_prescribed_procedure = function(frm) {
 	if (frm.doc.patient) {
 		frappe.call({
 			method: 'erpnext.healthcare.doctype.patient_appointment.patient_appointment.get_procedure_prescribed',
-			args: {patient: frm.doc.patient},
+			args: { patient: frm.doc.patient },
 			callback: function(r) {
 				if (r.message && r.message.length) {
 					show_procedure_templates(frm, r.message);
@@ -501,9 +518,11 @@ let show_procedure_templates = function(frm, result){
 		data-encounter="%(encounter)s" data-practitioner="%(practitioner)s"\
 		data-date="%(date)s"  data-department="%(department)s">\
 		<button class="btn btn-default btn-xs">Add\
-		</button></a></div></div><div class="col-xs-12"><hr/><div/>', {name:y[0], procedure_template: y[1],
-				encounter:y[2], consulting_practitioner:y[3], encounter_date:y[4],
-				practitioner:y[5]? y[5]:'', date: y[6]? y[6]:'', department: y[7]? y[7]:''})).appendTo(html_field);
+		</button></a></div></div><div class="col-xs-12"><hr/><div/>', {
+			name: y[0], procedure_template: y[1],
+			encounter: y[2], consulting_practitioner: y[3], encounter_date: y[4],
+			practitioner: y[5] ? y[5] : '', date: y[6] ? y[6] : '', department: y[7] ? y[7] : ''
+		})).appendTo(html_field);
 		row.find("a").click(function() {
 			frm.doc.procedure_template = $(this).attr('data-procedure-template');
 			frm.doc.procedure_prescription = $(this).attr('data-name');
@@ -520,8 +539,8 @@ let show_procedure_templates = function(frm, result){
 		});
 	});
 	if (!result) {
-		let msg = __('There are no procedure prescribed for ') + frm.doc.patient;
-		$(repl('<div class="col-xs-12" style="padding-top:20px;" >%(msg)s</div></div>', {msg: msg})).appendTo(html_field);
+		let msg = __('There are no procedures prescribed for {0}', frm.doc.patient);
+		$(repl('<div class="col-xs-12" style="padding-top:20px;" >%(msg)s</div></div>', { msg: msg })).appendTo(html_field);
 	}
 	d.show();
 };
@@ -536,7 +555,7 @@ let show_therapy_types = function(frm, result) {
 		]
 	});
 	var html_field = d.fields_dict.therapy_type.$wrapper;
-	$.each(result, function(x, y){
+	$.each(result, function(x, y) {
 		var row = $(repl('<div class="col-xs-12" style="padding-top:12px; text-align:center;" >\
 		<div class="col-xs-5"> %(encounter)s <br> %(practitioner)s <br> %(date)s </div>\
 		<div class="col-xs-5"> %(therapy)s </div>\
@@ -545,9 +564,11 @@ let show_therapy_types = function(frm, result) {
 		data-encounter="%(encounter)s" data-practitioner="%(practitioner)s"\
 		data-date="%(date)s"  data-department="%(department)s">\
 		<button class="btn btn-default btn-xs">Add\
-		</button></a></div></div><div class="col-xs-12"><hr/><div/>', {therapy:y[0],
-		name: y[1], encounter:y[2], practitioner:y[3], date:y[4],
-		department:y[6]? y[6]:'', therapy_plan:y[5]})).appendTo(html_field);
+		</button></a></div></div><div class="col-xs-12"><hr/><div/>', {
+			therapy: y[0],
+			name: y[1], encounter: y[2], practitioner: y[3], date: y[4],
+			department: y[6] ? y[6] : '', therapy_plan: y[5]
+		})).appendTo(html_field);
 
 		row.find("a").click(function() {
 			frm.doc.therapy_type = $(this).attr("data-therapy");
@@ -582,13 +603,13 @@ let create_vital_signs = function(frm) {
 	frappe.new_doc('Vital Signs');
 };
 
-let update_status = function(frm, status){
+let update_status = function(frm, status) {
 	let doc = frm.doc;
 	frappe.confirm(__('Are you sure you want to cancel this appointment?'),
 		function() {
 			frappe.call({
 				method: 'erpnext.healthcare.doctype.patient_appointment.patient_appointment.update_status',
-				args: {appointment_id: doc.name, status:status},
+				args: { appointment_id: doc.name, status: status },
 				callback: function(data) {
 					if (!data.exc) {
 						frm.reload_doc();
@@ -603,6 +624,6 @@ let calculate_age = function(birth) {
 	let ageMS = Date.parse(Date()) - Date.parse(birth);
 	let age = new Date();
 	age.setTime(ageMS);
-	let years =  age.getFullYear() - 1970;
+	let years = age.getFullYear() - 1970;
 	return `${years} ${__('Years(s)')} ${age.getMonth()} ${__('Month(s)')} ${age.getDate()} ${__('Day(s)')}`;
 };

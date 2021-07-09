@@ -4,10 +4,12 @@
 
 from __future__ import unicode_literals
 import frappe
-from frappe.utils import getdate, nowdate
+from frappe import _
 from frappe.model.document import Document
-from erpnext.healthcare.doctype.healthcare_insurance_contract.healthcare_insurance_contract import validate_insurance_contract
+from erpnext.healthcare.doctype.healthcare_insurance_company.healthcare_insurance_company import has_active_contract
 
 class HealthcareInsuranceCoveragePlan(Document):
 	def validate(self):
-		validate_insurance_contract(self.insurance_company)
+		if not has_active_contract(self.insurance_company):
+			frappe.throw(_('No active contracts found for Insurance Company {0}')
+				.format(self.insurance_company))
