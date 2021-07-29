@@ -21,18 +21,33 @@ class HealthcareInsurancePaymentRequest(Document):
 
 	@frappe.whitelist()
 	def set_claim_items(self):
-		claims = self.get_claim_items()
+		claims = self.get_claims()
 		for claim in claims:
-			self.append('claims', {
-				'insurance_claim': claim.name,
-				'patient': claim.patient,
-				'healthcare_service_type': claim.healthcare_service_type,
-				'service_template': claim.service_template,
-				'sales_invoice': claim.sales_invoice,
-				'discount': claim.discount,
-				'claim_coverage': claim.coverage,
-				'claim_amount': claim.coverage_amount
-			})
+			print('claim:', claim)
+			self.append('claims', claim)
+
+	@frappe.whitelist()
+	def get_claims(self):
+		claim_list = frappe.db.sql('''
+			SELECT cl.name as insurance_claim, cl.patient, cl.patient_name, cl.template_dt, cl.template_dn,
+				cl.coverage, cl.discount, cl.claim_amount, cl.discount_amount, si.name as sales_invoice
+			FROM `tabHealthcare Insurance Claim` cl
+			JOIN `tabSales Invoice Item` sii ON cl.name=sii.insurance_claim
+			JOIN `tabSales Invoice` si ON sii.parent=si.name
+			WHERE 
+				cl.docstatus=1 and
+				cl.company=%(company)s and
+				cl.insurance_company=%(insurance_company)s and
+				cl.status in %(statuses)s
+		''', {
+			'company': self.company,
+			'insurance_company': self.insurance_company,
+			'statuses': tuple(['Invoiced', 'Payment Error'])
+		 }, as_dict=1)
+
+		print('claim_list: ', len(claim_list), claim_list)
+		return claim_list
+		
 
 	def get_claim_items(self):
 		filters = {
@@ -52,7 +67,7 @@ class HealthcareInsurancePaymentRequest(Document):
 
 		return frappe.db.get_all('Healthcare Insurance Claim',
 			filters=filters,
-			fields=['name', 'patient', 'healthcare_service_type', 'service_template',
+			fields=['name', 'patient', 'template_dt', 'template_dn',
 				'sales_invoice', 'discount', 'coverage', 'coverage_amount'])
 
 

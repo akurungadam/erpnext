@@ -37,6 +37,16 @@ frappe.ui.form.on('Healthcare Insurance Payment Request', {
 	get_insurance_claims: function(frm) {
 		frm.doc.claims = [];
 
+		// frappe.call({
+		// 	method: 'get_claims',
+		// 	doc: frm.doc,
+		// 	freeze: true,
+		// 	freeze_message: __('Fetching Claims'),
+		// 	callback: function(r) {
+		// 		console.log(r.message);
+		// 	}
+		// });
+
 		frappe.call({
 			method: 'set_claim_items',
 			doc: frm.doc,

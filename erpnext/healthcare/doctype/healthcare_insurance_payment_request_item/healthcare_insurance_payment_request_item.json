@@ -9,12 +9,13 @@
   "patient",
   "patient_name",
   "insurance_claim",
-  "healthcare_service_type",
-  "service_template",
+  "template_dt",
+  "template_dn",
   "column_break_6",
   "sales_invoice",
   "discount",
-  "claim_coverage",
+  "discount_amount",
+  "coverage",
   "claim_amount"
  ],
  "fields": [
@@ -33,38 +34,17 @@
    "options": "Sales Invoice"
   },
   {
-   "fieldname": "claim_coverage",
-   "fieldtype": "Percent",
-   "label": "Claim Coverage",
-   "reqd": 1
-  },
-  {
    "fieldname": "patient",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Patient",
    "options": "Patient",
    "reqd": 1
   },
   {
-   "fieldname": "healthcare_service_type",
-   "fieldtype": "Link",
-   "label": "Healthcare Service Type",
-   "options": "DocType",
-   "reqd": 1
-  },
-  {
-   "fieldname": "service_template",
-   "fieldtype": "Dynamic Link",
-   "in_list_view": 1,
-   "label": "Service Template",
-   "options": "healthcare_service_type",
-   "reqd": 1
-  },
-  {
+   "default": "0",
    "fieldname": "discount",
    "fieldtype": "Percent",
-   "label": "Discount"
+   "label": "Discount Percent"
   },
   {
    "fieldname": "claim_amount",
@@ -77,18 +57,47 @@
    "fetch_from": "patient.patient_name",
    "fieldname": "patient_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Patient Name",
    "read_only": 1
   },
   {
    "fieldname": "column_break_6",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "template_dt",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Service Type",
+   "options": "DocType",
+   "reqd": 1
+  },
+  {
+   "fieldname": "template_dn",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Service",
+   "options": "template_dt",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount Amount"
+  },
+  {
+   "fieldname": "coverage",
+   "fieldtype": "Percent",
+   "label": "Coverage Percent",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2021-07-11 10:22:16.189702",
+ "modified": "2021-07-19 00:07:14.132569",
  "modified_by": "Administrator",
  "module": "Healthcare",
  "name": "Healthcare Insurance Payment Request Item",
