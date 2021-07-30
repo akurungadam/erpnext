@@ -23,8 +23,14 @@ class HealthcareServiceInsuranceCoverage(Document):
 		self.set_title()
 
 	def validate_coverage_percentages(self):
-		if flt(self.coverage) <= 0 or flt(self.discount) < 0: # discount can be zero
-			frappe.throw(_('Invalid Coverage / Discount percentage'))
+		if self.coverage == 100:
+			self.discount = 0
+
+		if flt(self.coverage) <= 0 or \
+			flt(self.coverage) > 100 or \
+			flt(self.discount) < 0 or \
+			((flt(self.discount) + flt(self.discount)) > 100):
+				frappe.throw(_('Invalid Coverage / Discount percentage'))
 
 	def validate_dates(self):
 		if self.valid_from and self.valid_till:
