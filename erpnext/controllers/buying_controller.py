@@ -466,28 +466,9 @@ class BuyingController(SubcontractingController):
 		if self.doctype not in ["Purchase Receipt", "Purchase Invoice"] or not self.is_return:
 			return
 
-		purchase_doc_field = "purchase_receipt" if self.doctype == "Purchase Receipt" else "purchase_invoice"
-		not_cancelled_asset = []
-		if self.return_against:
-			not_cancelled_asset = [
-				d.name
-				for d in frappe.db.get_all("Asset", {purchase_doc_field: self.return_against, "docstatus": 1})
-			]
-
-		if self.is_return and len(not_cancelled_asset):
-			frappe.throw(
-				_(
-					"{0} has submitted assets linked to it. You need to cancel the assets to create purchase return."
-				).format(self.return_against),
-				title=_("Not Allowed"),
-			)
-
 		self.validate_assets_left_after_return()
 
 	def validate_assets_left_after_return(self):
-		if self.doctype == "Purchase Invoice" and not self.get("update_stock"):
-			return
-
 		detail_field = (
 			"purchase_receipt_item" if self.doctype == "Purchase Receipt" else "purchase_invoice_item"
 		)
@@ -500,7 +481,7 @@ class BuyingController(SubcontractingController):
 			if flt(asset_qty) > kept_qty[detail]:
 				frappe.throw(
 					_(
-						"Row #{0}: {1} assets of {2} are linked to {3}, which keeps only {4} after this return. Delete the extra draft assets first."
+						"Row #{0}: {1} assets of {2} are linked to {3}, which keeps only {4} after this return. Cancel or Delete the extra assets first."
 					).format(
 						rows[detail].idx,
 						flt(asset_qty),
